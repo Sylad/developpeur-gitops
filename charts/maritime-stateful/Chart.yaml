@@ -1,0 +1,6 @@
+apiVersion: v2
+name: maritime-stateful
+description: Stateful backends for maritime-atlas — dual PG (catalog + data) + RabbitMQ cluster
+type: application
+version: 0.1.0
+appVersion: "1.0"

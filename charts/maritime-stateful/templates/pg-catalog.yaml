@@ -1,0 +1,22 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg-catalog
+spec:
+  instances: {{ .Values.pgCatalog.instances }}
+  imageName: {{ .Values.pgCatalog.imageName }}
+  storage:
+    size: {{ .Values.pgCatalog.storage.size }}
+    storageClass: {{ .Values.pgCatalog.storage.storageClass }}
+  bootstrap:
+    initdb:
+      database: maritime
+      owner: maritime
+  postgresql:
+    parameters:
+      # Tuning léger pour preprod
+      shared_buffers: "128MB"
+      max_connections: "100"
+  superuserSecret:
+    name: pg-catalog-superuser
+  enableSuperuserAccess: true

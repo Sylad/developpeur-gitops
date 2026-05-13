@@ -1,0 +1,31 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg-data
+spec:
+  instances: {{ .Values.pgData.instances }}
+  imageName: {{ .Values.pgData.imageName }}
+  storage:
+    size: {{ .Values.pgData.storage.size }}
+    storageClass: {{ .Values.pgData.storage.storageClass }}
+  bootstrap:
+    initdb:
+      database: maritime
+      owner: maritime
+      postInitSQL:
+        {{- range .Values.pgData.postInitSQL }}
+        - {{ . | quote }}
+        {{- end }}
+  postgresql:
+    parameters:
+      shared_buffers: "256MB"
+      max_connections: "200"
+      max_worker_processes: "16"
+      max_parallel_workers_per_gather: "2"
+  # TODO Timescale : CNPG ne permet pas shared_preload_libraries user-defined.
+  # Pour l'activer proprement : utiliser une image CNPG-compatible qui contient
+  # timescaledb (à packager ou prendre `ghcr.io/cloudnative-pg/postgresql:16-bookworm`
+  # + custom build), OU utiliser des tables PG standard (pas d'hypertable) ce
+  # qui suffit pour preprod local. Pour prod cloud, recompiler l'image avec
+  # extension Timescale précompilée.
+  enableSuperuserAccess: true

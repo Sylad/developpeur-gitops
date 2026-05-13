@@ -1,0 +1,36 @@
+# Maritime stateful — preprod local k3s Big-Blue.
+#
+# Pattern dual-DB (incident 2026-05-13) : 2 clusters PG distincts pour
+# isoler les workloads incompatibles. Voir K8S-MIGRATION-ROADMAP.md.
+
+# pg-catalog : tiny, GeoServer JDBCConfig + sessions Tomcat
+pgCatalog:
+  instances: 1
+  storage:
+    size: 1Gi
+    storageClass: local-path
+  imageName: ghcr.io/cloudnative-pg/postgresql:16
+
+# pg-data : hypertables Timescale (vessels, positions, lightning, etc.)
+pgData:
+  instances: 1
+  storage:
+    size: 10Gi
+    storageClass: local-path
+  # Image avec extension Timescale activable. CNPG ne shippe pas Timescale
+  # par défaut → on utilise l'image officielle Timescale qui suit la même
+  # structure de cluster que CNPG attend.
+  # Image CNPG standard (Timescale ne se charge pas via shared_preload_libraries
+  # user-defined sur CNPG — solution propre = image custom à packager).
+  imageName: ghcr.io/cloudnative-pg/postgresql:16
+  postInitSQL:
+    - CREATE EXTENSION IF NOT EXISTS postgis;
+
+rabbitmq:
+  replicas: 1
+  storage:
+    size: 2Gi
+    storageClass: local-path
+  resources:
+    requests: { cpu: "100m", memory: "256Mi" }
+    limits:   { cpu: "1",     memory: "1Gi" }

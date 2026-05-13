@@ -1,0 +1,19 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: rmq
+spec:
+  replicas: {{ .Values.rabbitmq.replicas }}
+  persistence:
+    storage: {{ .Values.rabbitmq.storage.size }}
+    storageClassName: {{ .Values.rabbitmq.storage.storageClass }}
+  resources:
+    {{- toYaml .Values.rabbitmq.resources | nindent 4 }}
+  rabbitmq:
+    additionalPlugins:
+      - rabbitmq_management
+      - rabbitmq_prometheus
+    additionalConfig: |
+      log.console.level = info
+      cluster_partition_handling = autoheal
+      vm_memory_high_watermark.relative = 0.6
