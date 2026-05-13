@@ -1,0 +1,48 @@
+# Values pour preprod local k3s Big-Blue.
+# Pour prod cloud Scaleway, on aura un values-prod.yaml qui override.
+
+backend:
+  image: finance-tracker-backend
+  tag: v1
+  pullPolicy: IfNotPresent  # images locales importées dans k3s containerd
+  port: 3000
+  replicas: 1
+  resources:
+    requests: { cpu: "50m",  memory: "128Mi" }
+    limits:   { cpu: "500m", memory: "512Mi" }
+  env:
+    NODE_ENV: production
+    CORS_ORIGIN: "https://finance.dev.local"
+    DATA_DIR: /app/data
+    UPLOAD_DIR: /app/data/uploads
+    SHARED_DATA_DIR: /app/shared-data
+    DEMO_FORCED_HOSTS: "trycloudflare.com,cfargotunnel.com"
+    ALLOW_NO_PIN: "true"
+  # Secret référencé pour FOOTBALL_API_KEY, ANTHROPIC_API_KEY, APP_PIN.
+  # On utilisera SealedSecret pour push ça dans Git en chiffré.
+  secretName: finance-tracker-secrets
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClassName: local-path
+
+frontend:
+  image: finance-tracker-frontend
+  tag: v1
+  pullPolicy: IfNotPresent
+  port: 80
+  replicas: 1
+  resources:
+    requests: { cpu: "10m",  memory: "16Mi" }
+    limits:   { cpu: "100m", memory: "64Mi" }
+
+ingress:
+  host: finance.dev.local
+  className: nginx
+  tls:
+    enabled: true
+    secretName: finance-tracker-tls
+  annotations:
+    cert-manager.io/cluster-issuer: mkcert-ca-issuer
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "86400"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"

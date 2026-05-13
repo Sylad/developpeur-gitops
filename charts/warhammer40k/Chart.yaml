@@ -1,0 +1,6 @@
+apiVersion: v2
+name: warhammer40k
+description: OL Companion — NestJS backend + React/Vite frontend served by nginx
+type: application
+version: 0.1.0
+appVersion: "v1"

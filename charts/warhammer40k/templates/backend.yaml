@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: warhammer-backend
+  labels: { app: warhammer-backend }
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  selector:
+    matchLabels: { app: warhammer-backend }
+  template:
+    metadata:
+      labels: { app: warhammer-backend }
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image }}:{{ .Values.backend.tag }}"
+          imagePullPolicy: {{ .Values.backend.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.backend.port }}
+          env:
+            {{- range $k, $v := .Values.backend.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.backend.secretName }}
+                optional: true
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+      volumes:
+        - name: data
+          {{- if .Values.backend.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: warhammer-backend-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: warhammer-backend
+spec:
+  selector: { app: warhammer-backend }
+  ports:
+    - port: {{ .Values.backend.port }}
+      targetPort: {{ .Values.backend.port }}
+{{- if .Values.backend.persistence.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: warhammer-backend-data
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: {{ .Values.backend.persistence.storageClassName }}
+  resources:
+    requests:
+      storage: {{ .Values.backend.persistence.size }}
+{{- end }}

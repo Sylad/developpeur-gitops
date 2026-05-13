@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: warhammer-frontend
+  labels: { app: warhammer-frontend }
+spec:
+  replicas: {{ .Values.frontend.replicas }}
+  selector:
+    matchLabels: { app: warhammer-frontend }
+  template:
+    metadata:
+      labels: { app: warhammer-frontend }
+    spec:
+      containers:
+        - name: frontend
+          image: "{{ .Values.frontend.image }}:{{ .Values.frontend.tag }}"
+          imagePullPolicy: {{ .Values.frontend.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.frontend.port }}
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: warhammer-frontend
+spec:
+  selector: { app: warhammer-frontend }
+  ports:
+    - port: 80
+      targetPort: {{ .Values.frontend.port }}
