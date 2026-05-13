@@ -60,14 +60,18 @@ spec:
             {{- toYaml .Values.services.geoserver.resources | nindent 12 }}
           startupProbe:
             httpGet:
-              path: /geoserver/web/
+              # /geoserver/web/ retourne 302 (redirect index.html), pas idéal pour
+              # la probe — connu de Sylvain au taff. index.html direct = 200.
+              path: /geoserver/web/index.html
               port: 8080
             initialDelaySeconds: 30
             periodSeconds: 15
             failureThreshold: 60   # 15s × 60 = 15 min, tomcat + Spring slow boot
           livenessProbe:
             httpGet:
-              path: /geoserver/web/
+              # /geoserver/web/ retourne 302 (redirect index.html), pas idéal pour
+              # la probe — connu de Sylvain au taff. index.html direct = 200.
+              path: /geoserver/web/index.html
               port: 8080
             periodSeconds: 30
             timeoutSeconds: 10
