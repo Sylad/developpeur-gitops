@@ -22,14 +22,14 @@ pgData:
   # TODO Timescale : timescale/timescaledb-ha tourne en UID 1001 ≠ CNPG UID 26
   # → permission denied au bootstrap. Solution propre = build image custom
   # avec USER 26 + Timescale précompilé. Differé.
+  # TODO Phase 6 weekend : maritime-pg-ts:16.0.0 (UID 26 + Timescale apt) marche
+  # en debug pod standalone mais plante en CNPG sur "could not access file
+  # timescaledb" — encore un piège CNPG-specific à debugger à tête reposée.
+  # Pour ce soir on reste sur l'image PostGIS standard avec les stubs SQL :
+  # maritime API a déjà fait ses migrations dessus + boot OK.
   imageName: ghcr.io/cloudnative-pg/postgis:16-3.4
   postInitSQL:
     - CREATE EXTENSION IF NOT EXISTS postgis
-    # Stubs LANGUAGE SQL (pas plpgsql) — CNPG postInitSQL split sur `;` ce
-    # qui casse les blocs BEGIN...END plpgsql avec $$. SQL inline marche.
-    - "CREATE OR REPLACE FUNCTION create_hypertable(regclass, text, chunk_time_interval interval DEFAULT NULL, if_not_exists boolean DEFAULT false) RETURNS void LANGUAGE sql AS 'SELECT NULL::void'"
-    - "CREATE OR REPLACE FUNCTION add_compression_policy(regclass, interval, if_not_exists boolean DEFAULT false) RETURNS integer LANGUAGE sql AS 'SELECT 0'"
-    - "CREATE OR REPLACE FUNCTION add_retention_policy(regclass, interval, if_not_exists boolean DEFAULT false) RETURNS integer LANGUAGE sql AS 'SELECT 0'"
 
 rabbitmq:
   replicas: 1

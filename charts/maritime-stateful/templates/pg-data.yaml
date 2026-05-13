@@ -22,8 +22,7 @@ spec:
       max_connections: "200"
       max_worker_processes: "16"
       max_parallel_workers_per_gather: "2"
-    # Timescale skip pour ce soir — voir values.yaml. Activer la liste
-    # quand on aura une image CNPG-compatible avec UID 26 + timescaledb.
+    # Timescale defered : stubs SQL côté postInitSQL pour ce soir.
     # shared_preload_libraries:
     #   - timescaledb
   enableSuperuserAccess: true
