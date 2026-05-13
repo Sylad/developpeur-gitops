@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ol-companion
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Sylad/developpeur-gitops.git
+    targetRevision: main
+    path: charts/ol-companion
+    helm:
+      # values.yaml du chart est utilisé par défaut. Pour overrider :
+      # valueFiles: ["values-preprod.yaml"]
+      releaseName: ol-companion
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: preprod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
