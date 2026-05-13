@@ -1,0 +1,90 @@
+{{- if .Values.services.geoserver.enabled }}
+# GeoServer — 1 replica preprod, PVC pour le data_dir, JDBCConfig pointe sur
+# pg-catalog (175 rows déjà migrés). Sticky session via cookie pour avoir
+# session persistence quand on passera à replicas > 1 (Phase prod).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: geoserver-data
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: {{ .Values.services.geoserver.dataSize }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geoserver
+  labels: { app: geoserver }
+spec:
+  replicas: {{ .Values.services.geoserver.replicas }}
+  strategy:
+    # Recreate vs RollingUpdate : 1 replica + PVC RWO = un seul pod peut
+    # mount à la fois, donc RollingUpdate provoque un deadlock.
+    type: Recreate
+  selector:
+    matchLabels: { app: geoserver }
+  template:
+    metadata:
+      labels: { app: geoserver }
+    spec:
+      containers:
+        - name: geoserver
+          image: "{{ .Values.services.geoserver.image }}:{{ .Values.services.geoserver.tag }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: GEOSERVER_ADMIN_USER
+              value: admin
+            - name: GEOSERVER_ADMIN_PASSWORD
+              value: geoserver
+            # JDBCConfig pointe sur pg-catalog (réplique exactement la config
+            # du NAS : currentSchema=geoserver, hôte = pg-catalog service).
+            - name: GEOSERVER_JDBCCONFIG_JDBC_URL
+              value: "jdbc:postgresql://pg-catalog-rw.maritime.svc:5432/maritime?currentSchema=geoserver"
+            - name: GEOSERVER_JDBCCONFIG_USER
+              valueFrom:
+                secretKeyRef: { name: pg-catalog-app, key: username }
+            - name: GEOSERVER_JDBCCONFIG_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: pg-catalog-app, key: password }
+            - name: JAVA_OPTS
+              value: "-Xms512m -Xmx2g"
+          volumeMounts:
+            - name: data
+              mountPath: /opt/geoserver_data
+          resources:
+            {{- toYaml .Values.services.geoserver.resources | nindent 12 }}
+          startupProbe:
+            httpGet:
+              path: /geoserver/web/
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 60   # 15s × 60 = 15 min, tomcat + Spring slow boot
+          livenessProbe:
+            httpGet:
+              path: /geoserver/web/
+              port: 8080
+            periodSeconds: 30
+            timeoutSeconds: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: geoserver-data
+---
+# Service GeoServer — replace l'ancien stub que j'avais créé. Si le stub
+# existe encore, Helm le réconciliera (même nom = même Service).
+apiVersion: v1
+kind: Service
+metadata:
+  name: geoserver
+spec:
+  selector: { app: geoserver }
+  ports:
+    - port: 8080
+      targetPort: 8080
+{{- end }}

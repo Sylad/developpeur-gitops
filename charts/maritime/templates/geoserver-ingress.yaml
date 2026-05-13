@@ -1,0 +1,34 @@
+{{- if .Values.services.geoserver.enabled }}
+# Ingress dédié pour l'UI Admin GeoServer (geoserver.dev.local).
+# Le frontend maritime utilise déjà le Service interne geoserver:8080 pour
+# ses proxys WMS/WFS. Cet Ingress sert uniquement pour l'accès Admin / direct API.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: geoserver
+  annotations:
+    cert-manager.io/cluster-issuer: mkcert-ca-issuer
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    # Sticky session par cookie — utile pour préparer Phase prod replicas > 1.
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "geoserver-route"
+    nginx.ingress.kubernetes.io/session-cookie-expires: "86400"
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [geoserver.dev.local]
+      secretName: geoserver-tls
+  rules:
+    - host: geoserver.dev.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: geoserver
+                port:
+                  number: 8080
+{{- end }}

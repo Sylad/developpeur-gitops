@@ -63,6 +63,19 @@ services:
       requests: { cpu: "50m",  memory: "128Mi" }
       limits:   { cpu: "500m", memory: "512Mi" }
 
+  # ─── GeoServer (cluster GIS) ──────────────────────────────────────
+  # JDBCConfig pointe sur pg-catalog (175 rows déjà migrés depuis NAS).
+  # PVC data_dir RWO single-replica preprod. Phase prod = StickySession + N replicas.
+  geoserver:
+    enabled: true
+    image: maritime-geoserver
+    tag: v1
+    replicas: 1
+    dataSize: 5Gi
+    resources:
+      requests: { cpu: "500m", memory: "1Gi" }
+      limits:   { cpu: "2",    memory: "3Gi" }
+
   # ─── Frontend Angular SPA + nginx ─────────────────────────────────
   frontend:
     enabled: true
