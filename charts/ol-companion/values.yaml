@@ -1,0 +1,47 @@
+# Values pour preprod local k3s Big-Blue.
+# Pour prod cloud Scaleway, on aura un values-prod.yaml qui override.
+
+backend:
+  image: ol-companion-backend
+  tag: v1
+  pullPolicy: IfNotPresent  # images locales importées dans k3s containerd
+  port: 3002
+  replicas: 1
+  resources:
+    requests: { cpu: "50m",  memory: "128Mi" }
+    limits:   { cpu: "500m", memory: "512Mi" }
+  env:
+    NODE_ENV: production
+    CORS_ORIGIN: "https://ol.dev.local"
+    SHARED_DATA_DIR: /app/shared-data
+    DEMO_FORCED_HOSTS: "trycloudflare.com,cfargotunnel.com"
+    # preprod local : pas de PIN, le cluster n'est pas exposé internet
+    ALLOW_NO_PIN: "true"
+  # Secret référencé pour FOOTBALL_API_KEY, ANTHROPIC_API_KEY, APP_PIN.
+  # On utilisera SealedSecret pour push ça dans Git en chiffré.
+  secretName: ol-companion-secrets
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClassName: local-path
+
+frontend:
+  image: ol-companion-frontend
+  tag: v1
+  pullPolicy: IfNotPresent
+  port: 80
+  replicas: 1
+  resources:
+    requests: { cpu: "10m",  memory: "16Mi" }
+    limits:   { cpu: "100m", memory: "64Mi" }
+
+ingress:
+  host: ol.dev.local
+  className: nginx
+  tls:
+    enabled: true
+    secretName: ol-companion-tls
+  annotations:
+    cert-manager.io/cluster-issuer: mkcert-ca-issuer
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "86400"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
