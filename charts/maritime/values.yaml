@@ -1,0 +1,86 @@
+# Maritime services — preprod local k3s.
+#
+# Stateful deps (pg-catalog, pg-data, rmq) sont dans le chart maritime-stateful
+# du même repo. Les Secrets CNPG `pg-data-app` et RMQ `rmq-default-user` sont
+# auto-générés par les operators et référencés par les services ci-dessous.
+
+services:
+  # ─── API NestJS (core backend) ────────────────────────────────────
+  api:
+    enabled: true
+    image: maritime-api
+    tag: v1
+    port: 3010
+    replicas: 1
+    resources:
+      requests: { cpu: "100m", memory: "256Mi" }
+      limits:   { cpu: "1",    memory: "1Gi" }
+    env:
+      NODE_ENV: production
+      PORT: "3010"
+      CORS_ORIGIN: "https://maritime.dev.local"
+      JWT_SECRET: dev-secret-change-me-in-prod
+      JWT_EXPIRES_IN: "24h"
+      GEOSERVER_URL: "http://geoserver:8080/geoserver"
+      GEOSERVER_ADMIN_USER: admin
+      GEOSERVER_ADMIN_PASSWORD: geoserver
+      GEOSERVER_WORKSPACE: maritime
+      PALETTE_LIMIT_PER_USER: "5"
+      ADMIN_EMAIL: sylvain.ladoire@gmail.com
+      ADMIN_USERNAME: sylvain
+
+  # ─── ais-decoder (consume RMQ → INSERT PG) ────────────────────────
+  aisDecoder:
+    enabled: true
+    image: maritime-ais-decoder
+    tag: v1
+    replicas: 1
+    resources:
+      requests: { cpu: "100m", memory: "256Mi" }
+      limits:   { cpu: "1",    memory: "1Gi" }
+
+  # ─── alerts-engine (consume RMQ + PG hypertable) ──────────────────
+  alertsEngine:
+    enabled: true
+    image: maritime-alerts-engine
+    tag: v1
+    replicas: 1
+    resources:
+      requests: { cpu: "50m",  memory: "128Mi" }
+      limits:   { cpu: "500m", memory: "512Mi" }
+    env:
+      WIND_SPEED_ALERT_THRESHOLD: "10"
+      LIGHTNING_PROXIMITY_KM: "10"
+      COOLDOWN_MIN: "30"
+
+  # ─── track-builder (cron hourly) ──────────────────────────────────
+  trackBuilder:
+    enabled: true
+    image: maritime-track-builder
+    tag: v1
+    replicas: 1
+    resources:
+      requests: { cpu: "50m",  memory: "128Mi" }
+      limits:   { cpu: "500m", memory: "512Mi" }
+
+  # ─── Frontend Angular SPA + nginx ─────────────────────────────────
+  frontend:
+    enabled: true
+    image: maritime-frontend
+    tag: v1
+    replicas: 1
+    port: 80
+    resources:
+      requests: { cpu: "10m",  memory: "16Mi" }
+      limits:   { cpu: "100m", memory: "64Mi" }
+
+ingress:
+  host: maritime.dev.local
+  className: nginx
+  tls:
+    enabled: true
+    secretName: maritime-tls
+  annotations:
+    cert-manager.io/cluster-issuer: mkcert-ca-issuer
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "86400"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"

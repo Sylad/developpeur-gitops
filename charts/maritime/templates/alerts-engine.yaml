@@ -1,0 +1,28 @@
+{{- if .Values.services.alertsEngine.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alerts-engine
+  labels: { app: alerts-engine }
+spec:
+  replicas: {{ .Values.services.alertsEngine.replicas }}
+  selector:
+    matchLabels: { app: alerts-engine }
+  template:
+    metadata:
+      labels: { app: alerts-engine }
+    spec:
+      containers:
+        - name: alerts-engine
+          image: "{{ .Values.services.alertsEngine.image }}:{{ .Values.services.alertsEngine.tag }}"
+          imagePullPolicy: IfNotPresent
+          env:
+            {{- range $k, $v := .Values.services.alertsEngine.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+            {{- include "maritime.dbUrlEnv" . | nindent 12 }}
+            {{- include "maritime.rmqEnv" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.services.alertsEngine.resources | nindent 12 }}
+{{- end }}

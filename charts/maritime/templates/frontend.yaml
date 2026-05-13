@@ -1,0 +1,33 @@
+{{- if .Values.services.frontend.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maritime-frontend
+  labels: { app: maritime-frontend }
+spec:
+  replicas: {{ .Values.services.frontend.replicas }}
+  selector:
+    matchLabels: { app: maritime-frontend }
+  template:
+    metadata:
+      labels: { app: maritime-frontend }
+    spec:
+      containers:
+        - name: frontend
+          image: "{{ .Values.services.frontend.image }}:{{ .Values.services.frontend.tag }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: {{ .Values.services.frontend.port }}
+          resources:
+            {{- toYaml .Values.services.frontend.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: maritime-frontend
+spec:
+  selector: { app: maritime-frontend }
+  ports:
+    - port: 80
+      targetPort: {{ .Values.services.frontend.port }}
+{{- end }}

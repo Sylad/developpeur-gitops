@@ -22,10 +22,8 @@ spec:
       max_connections: "200"
       max_worker_processes: "16"
       max_parallel_workers_per_gather: "2"
-  # TODO Timescale : CNPG ne permet pas shared_preload_libraries user-defined.
-  # Pour l'activer proprement : utiliser une image CNPG-compatible qui contient
-  # timescaledb (à packager ou prendre `ghcr.io/cloudnative-pg/postgresql:16-bookworm`
-  # + custom build), OU utiliser des tables PG standard (pas d'hypertable) ce
-  # qui suffit pour preprod local. Pour prod cloud, recompiler l'image avec
-  # extension Timescale précompilée.
+    # Timescale skip pour ce soir — voir values.yaml. Activer la liste
+    # quand on aura une image CNPG-compatible avec UID 26 + timescaledb.
+    # shared_preload_libraries:
+    #   - timescaledb
   enableSuperuserAccess: true

@@ -1,0 +1,23 @@
+{{- if .Values.services.trackBuilder.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: track-builder
+  labels: { app: track-builder }
+spec:
+  replicas: {{ .Values.services.trackBuilder.replicas }}
+  selector:
+    matchLabels: { app: track-builder }
+  template:
+    metadata:
+      labels: { app: track-builder }
+    spec:
+      containers:
+        - name: track-builder
+          image: "{{ .Values.services.trackBuilder.image }}:{{ .Values.services.trackBuilder.tag }}"
+          imagePullPolicy: IfNotPresent
+          env:
+            {{- include "maritime.dbUrlEnv" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.services.trackBuilder.resources | nindent 12 }}
+{{- end }}

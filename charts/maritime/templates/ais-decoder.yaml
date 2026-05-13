@@ -1,0 +1,24 @@
+{{- if .Values.services.aisDecoder.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ais-decoder
+  labels: { app: ais-decoder }
+spec:
+  replicas: {{ .Values.services.aisDecoder.replicas }}
+  selector:
+    matchLabels: { app: ais-decoder }
+  template:
+    metadata:
+      labels: { app: ais-decoder }
+    spec:
+      containers:
+        - name: ais-decoder
+          image: "{{ .Values.services.aisDecoder.image }}:{{ .Values.services.aisDecoder.tag }}"
+          imagePullPolicy: IfNotPresent
+          env:
+            {{- include "maritime.dbUrlEnv" . | nindent 12 }}
+            {{- include "maritime.rmqEnv" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.services.aisDecoder.resources | nindent 12 }}
+{{- end }}

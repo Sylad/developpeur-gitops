@@ -11,20 +11,25 @@ pgCatalog:
     storageClass: local-path
   imageName: ghcr.io/cloudnative-pg/postgresql:16
 
-# pg-data : hypertables Timescale (vessels, positions, lightning, etc.)
+# pg-data : hypertables (Timescale defered) + PostGIS pour geography.
 pgData:
   instances: 1
   storage:
     size: 10Gi
     storageClass: local-path
-  # Image avec extension Timescale activable. CNPG ne shippe pas Timescale
-  # par défaut → on utilise l'image officielle Timescale qui suit la même
-  # structure de cluster que CNPG attend.
-  # Image CNPG standard (Timescale ne se charge pas via shared_preload_libraries
-  # user-defined sur CNPG — solution propre = image custom à packager).
-  imageName: ghcr.io/cloudnative-pg/postgresql:16
+  # Image PG + PostGIS officielle CNPG. PostGIS pré-installé (requis pour
+  # les types geography(Point,4326) du schema maritime).
+  # TODO Timescale : timescale/timescaledb-ha tourne en UID 1001 ≠ CNPG UID 26
+  # → permission denied au bootstrap. Solution propre = build image custom
+  # avec USER 26 + Timescale précompilé. Differé.
+  imageName: ghcr.io/cloudnative-pg/postgis:16-3.4
   postInitSQL:
-    - CREATE EXTENSION IF NOT EXISTS postgis;
+    - CREATE EXTENSION IF NOT EXISTS postgis
+    # Stubs LANGUAGE SQL (pas plpgsql) — CNPG postInitSQL split sur `;` ce
+    # qui casse les blocs BEGIN...END plpgsql avec $$. SQL inline marche.
+    - "CREATE OR REPLACE FUNCTION create_hypertable(regclass, text, chunk_time_interval interval DEFAULT NULL, if_not_exists boolean DEFAULT false) RETURNS void LANGUAGE sql AS 'SELECT NULL::void'"
+    - "CREATE OR REPLACE FUNCTION add_compression_policy(regclass, interval, if_not_exists boolean DEFAULT false) RETURNS integer LANGUAGE sql AS 'SELECT 0'"
+    - "CREATE OR REPLACE FUNCTION add_retention_policy(regclass, interval, if_not_exists boolean DEFAULT false) RETURNS integer LANGUAGE sql AS 'SELECT 0'"
 
 rabbitmq:
   replicas: 1

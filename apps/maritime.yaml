@@ -1,0 +1,51 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: maritime-stateful
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Sylad/developpeur-gitops.git
+    targetRevision: main
+    path: charts/maritime-stateful
+    helm:
+      releaseName: maritime-stateful
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: maritime
+  syncPolicy:
+    automated:
+      prune: false  # CNPG Cluster delete = data loss, on garde manuel
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: maritime
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Sylad/developpeur-gitops.git
+    targetRevision: main
+    path: charts/maritime
+    helm:
+      releaseName: maritime
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: maritime
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
