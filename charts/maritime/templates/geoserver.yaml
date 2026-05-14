@@ -89,9 +89,8 @@ spec:
           persistentVolumeClaim:
             claimName: geoserver-data
         - name: coverage-data
-          hostPath:
-            path: /var/lib/maritime/coverage
-            type: DirectoryOrCreate
+          persistentVolumeClaim:
+            claimName: maritime-coverage
 ---
 # Service GeoServer — replace l'ancien stub que j'avais créé. Si le stub
 # existe encore, Helm le réconciliera (même nom = même Service).

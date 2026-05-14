@@ -197,3 +197,12 @@ ingress:
     cert-manager.io/cluster-issuer: mkcert-ca-issuer
     nginx.ingress.kubernetes.io/proxy-read-timeout: "86400"
     nginx.ingress.kubernetes.io/proxy-buffering: "off"
+
+# ─── Storage partagé /coverage et /wind-arrows ──────────────────────
+# Migré de hostPath → PVC RWX Longhorn (vague 2 industrialisation).
+# Requiert Longhorn installé sur le cluster (cf bootstrap script).
+coverage:
+  enabled: true
+  storageClass: longhorn
+  coverageSize: 10Gi
+  windArrowsSize: 2Gi

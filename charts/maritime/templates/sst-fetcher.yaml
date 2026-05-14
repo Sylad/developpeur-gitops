@@ -41,7 +41,6 @@ spec:
             {{- toYaml .Values.services.sstFetcher.resources | nindent 12 }}
       volumes:
         - name: coverage-data
-          hostPath:
-            path: /var/lib/maritime/coverage
-            type: DirectoryOrCreate
+          persistentVolumeClaim:
+            claimName: maritime-coverage
 {{- end }}

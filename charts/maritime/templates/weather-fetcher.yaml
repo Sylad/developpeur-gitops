@@ -53,11 +53,9 @@ spec:
             {{- toYaml .Values.services.weatherFetcher.resources | nindent 12 }}
       volumes:
         - name: coverage-data
-          hostPath:
-            path: /var/lib/maritime/coverage
-            type: DirectoryOrCreate
+          persistentVolumeClaim:
+            claimName: maritime-coverage
         - name: wind-arrows-data
-          hostPath:
-            path: /var/lib/maritime/wind-arrows
-            type: DirectoryOrCreate
+          persistentVolumeClaim:
+            claimName: maritime-wind-arrows
 {{- end }}

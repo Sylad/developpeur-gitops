@@ -31,9 +31,8 @@ spec:
             {{- toYaml .Values.services.frontend.resources | nindent 12 }}
       volumes:
         - name: wind-arrows-data
-          hostPath:
-            path: /var/lib/maritime/wind-arrows
-            type: DirectoryOrCreate
+          persistentVolumeClaim:
+            claimName: maritime-wind-arrows
 ---
 apiVersion: v1
 kind: Service
