@@ -1,0 +1,35 @@
+{{- if .Values.services.aisIngester.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ais-ingester
+  labels: { app: ais-ingester }
+spec:
+  replicas: {{ .Values.services.aisIngester.replicas }}
+  selector:
+    matchLabels: { app: ais-ingester }
+  # Une seule instance ais-ingester à la fois (les events sont diffusés
+  # par bbox côté aisstream — multiple replicas duplique le flux).
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels: { app: ais-ingester }
+    spec:
+      containers:
+        - name: ais-ingester
+          image: "{{ .Values.services.aisIngester.image }}:{{ .Values.services.aisIngester.tag }}"
+          imagePullPolicy: IfNotPresent
+          env:
+            {{- range $k, $v := .Values.services.aisIngester.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+            {{- include "maritime.rmqEnv" . | nindent 12 }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.services.aisIngester.secretName }}
+                optional: true
+          resources:
+            {{- toYaml .Values.services.aisIngester.resources | nindent 12 }}
+{{- end }}

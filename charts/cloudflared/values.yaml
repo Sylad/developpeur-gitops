@@ -1,0 +1,22 @@
+# Cloudflare Tunnel — expose les services K8s internes sur *.sladoire.dev.
+#
+# Setup côté Cloudflare (à faire en UI, hors charts) :
+# 1. Dashboard Cloudflare → Zero Trust → Networks → Tunnels → Create tunnel
+# 2. Nommer "aetherwx-mini-blue", récupérer le TOKEN (`eyJh...`)
+# 3. Configurer les Public Hostnames du tunnel :
+#    aetherwx.sladoire.dev   → http://maritime-frontend.maritime.svc.cluster.local:80
+#    geoserver.sladoire.dev  → http://geoserver.maritime.svc.cluster.local:8080
+#    argocd.sladoire.dev     → http://argocd-server.argocd.svc.cluster.local:80
+#    ol.sladoire.dev         → http://ol-frontend.preprod.svc.cluster.local:80
+#    finance.sladoire.dev    → http://finance-frontend.preprod.svc.cluster.local:80
+#    warhammer.sladoire.dev  → http://warhammer-frontend.preprod.svc.cluster.local:80
+# 4. Le tunnel auto-crée les CNAME DNS records sur sladoire.dev → tunnel ID
+# 5. Stocker le token via : kubectl create secret generic cloudflared-token -n infra \
+#       --from-literal=token='<TOKEN>'
+
+image: cloudflare/cloudflared:latest
+replicas: 1   # plusieurs replicas OK avec Cloudflare HA (1 suffit côté tunnel)
+secretName: cloudflared-token
+resources:
+  requests: { cpu: "50m",  memory: "64Mi" }
+  limits:   { cpu: "200m", memory: "256Mi" }

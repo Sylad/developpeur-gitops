@@ -1,0 +1,6 @@
+apiVersion: v2
+name: cloudflared
+description: Cloudflare Tunnel deployment for exposing internal K8s services on *.sladoire.dev
+type: application
+version: 0.1.0
+appVersion: "latest"

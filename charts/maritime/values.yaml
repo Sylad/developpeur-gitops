@@ -29,6 +29,25 @@ services:
       ADMIN_EMAIL: sylvain.ladoire@gmail.com
       ADMIN_USERNAME: sylvain
 
+  # ─── ais-ingester (aisstream.io WebSocket → publish RMQ ais.raw) ──
+  # Source du flux AIS live. Le Secret `ais-ingester-secrets` doit
+  # contenir AISSTREAM_API_KEY (key gratuite sur aisstream.io).
+  aisIngester:
+    enabled: true
+    image: maritime-ais-ingester
+    tag: v1
+    replicas: 1
+    resources:
+      requests: { cpu: "50m", memory: "128Mi" }
+      limits:   { cpu: "500m", memory: "512Mi" }
+    env:
+      # BBox Europe étroite — même config que NAS (cohérent avec frontend).
+      BBOX_SW_LAT: "30"
+      BBOX_SW_LON: "-15"
+      BBOX_NE_LAT: "65"
+      BBOX_NE_LON: "30"
+    secretName: ais-ingester-secrets  # contient AISSTREAM_API_KEY
+
   # ─── ais-decoder (consume RMQ → INSERT PG) ────────────────────────
   aisDecoder:
     enabled: true
