@@ -180,7 +180,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-4e8e8f0   # projection EPSG:3857 source (pattern OL doc officiel)
+    tag: sha-ca78bf9   # geoJsonFmt lazy projection (fix wind arrows Lambert)
     replicas: 1
     port: 80
     resources:
