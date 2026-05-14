@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: v2  # v2 = v1 + JAR plugin custom IDW (fr.sladoire.maritime.idw)
+    tag: v3-idw-fix   # fix ArrayIndexOutOfBoundsException EPSG:3857 (getSamples minX/minY)
     replicas: 1
     dataSize: 5Gi
     resources:
