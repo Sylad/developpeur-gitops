@@ -180,7 +180,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-ea94bb7   # geoJsonFmt lazy projection (fix wind arrows Lambert)
+    tag: sha-c44e1ca   # geoJsonFmt lazy projection (fix wind arrows Lambert)
     replicas: 1
     port: 80
     resources:
