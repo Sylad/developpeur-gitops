@@ -54,7 +54,7 @@ spec:
               valueFrom:
                 secretKeyRef: { name: pg-catalog-app, key: password }
             - name: JAVA_OPTS
-              value: "-Xms512m -Xmx2g"
+              value: "-Xms512m -Xmx2500m"  # 2g→2500m (2026-05-14) OOM heap sur render IDW 4Mpx
           volumeMounts:
             - name: data
               mountPath: /opt/geoserver_data
