@@ -76,11 +76,11 @@ services:
       requests: { cpu: "500m", memory: "1Gi" }
       limits:   { cpu: "2",    memory: "3Gi" }
 
-  # ─── Frontend Angular SPA + nginx ─────────────────────────────────
+  # ─── Frontend Angular SPA + nginx (AetherWX brand) ────────────────
   frontend:
     enabled: true
     image: maritime-frontend
-    tag: v1
+    tag: v2-aetherwx   # rebrand maritime-atlas → AetherWX (logo + titles + slogan)
     replicas: 1
     port: 80
     resources:
