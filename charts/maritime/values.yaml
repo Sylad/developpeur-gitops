@@ -180,7 +180,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-f62a8ee   # rasters meteo en ImageWMS (multi-projection)
+    tag: sha-366c678   # remove projection forcing — OL inherit auto
     replicas: 1
     port: 80
     resources:
