@@ -9,7 +9,11 @@ services:
   api:
     enabled: true
     image: maritime-api
-    tag: v1
+    # v2-debian : base Debian bookworm-slim au lieu d'Alpine — fix
+    # undici fetch() qui timeoutait sur Alpine 3.23 musl libc en HTTPS
+    # externe (USGS, METAR, hubeau-débits, etc.). https.request() marche
+    # mais le code utilise fetch() partout → seul recours : base glibc.
+    tag: v2-debian
     port: 3010
     replicas: 1
     resources:
