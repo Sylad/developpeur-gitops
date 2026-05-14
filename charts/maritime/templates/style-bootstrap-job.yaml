@@ -1,0 +1,51 @@
+{{- if .Values.services.styleBootstrap.enabled }}
+# Maritime Style Bootstrap — Job idempotent
+#
+# Tourne à chaque ArgoCD sync (hook post-sync) pour s'assurer que les
+# styles SLD custom + leurs default-style sont bien déployés côté
+# GeoServer. Idempotent : si déjà OK, no-op visible (delete+upload
+# success).
+#
+# Pourquoi ArgoCD hook plutôt que Helm hook : Helm hooks ne sont pas
+# nativement portés sur ArgoCD sans annotation explicite. ArgoCD a
+# son propre système de hooks via `argocd.argoproj.io/hook` qui est
+# le pattern attendu pour gitops.
+#
+# Utilise un name unique par sync (suffixe random via /metadata.name
+# pour éviter `Job already exists`).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: maritime-style-bootstrap
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: maritime-style-bootstrap
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: bootstrap
+          image: "{{ .Values.services.styleBootstrap.image }}:{{ .Values.services.styleBootstrap.tag }}"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: GS_URL
+              value: "http://geoserver:8080/geoserver"
+            - name: GS_USER
+              value: admin
+            - name: GS_PASSWORD
+              value: geoserver
+            - name: GS_WORKSPACE
+              value: maritime
+          resources:
+            requests: { cpu: "50m",  memory: "64Mi" }
+            limits:   { cpu: "200m", memory: "256Mi" }
+      imagePullSecrets:
+        - name: regcred
+{{- end }}

@@ -180,6 +180,17 @@ services:
       # stacks + page cache + tmp). Big-Blue et Mini-Blue ont 32 Gi chacun
       # donc largement de la marge.
 
+  # ─── Style bootstrap (ArgoCD PostSync Job) ────────────────────────
+  # Provisionne déclarativement les styles SLD custom (wind-speed-idw,
+  # etc.) + leurs default-style associations côté GeoServer. Tourne
+  # post-sync sur chaque cluster → 2 clusters restent synchros sans
+  # drift entre REST manuel sur l'un et oubli sur l'autre.
+  styleBootstrap:
+    enabled: true
+    image: ghcr.io/sylad/maritime-style-bootstrap
+    tag: latest   # mis à jour automatiquement via GH Actions ; ArgoCD
+                  # détecte le nouvel image digest et re-run le Job.
+
   # ─── Frontend Angular SPA + nginx (AetherWX brand) ────────────────
   frontend:
     enabled: true
