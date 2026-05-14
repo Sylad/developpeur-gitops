@@ -80,7 +80,7 @@ services:
   frontend:
     enabled: true
     image: maritime-frontend
-    tag: v2-aetherwx   # rebrand maritime-atlas → AetherWX (logo + titles + slogan)
+    tag: v3-aetherwx   # rebrand maritime-atlas → AetherWX + logo header map + erreur compact UX
     replicas: 1
     port: 80
     resources:
