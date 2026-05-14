@@ -16,7 +16,7 @@ backend:
     DATA_DIR: /app/data
     UPLOAD_DIR: /app/data/uploads
     SHARED_DATA_DIR: /app/shared-data
-    DEMO_FORCED_HOSTS: "trycloudflare.com,cfargotunnel.com"
+    DEMO_FORCED_HOSTS: "trycloudflare.com,cfargotunnel.com,finance.dev.local"
     ALLOW_NO_PIN: "true"
   # Secret référencé pour FOOTBALL_API_KEY, ANTHROPIC_API_KEY, APP_PIN.
   # On utilisera SealedSecret pour push ça dans Git en chiffré.
