@@ -180,7 +180,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: v5-aetherwx   # logo hero plein largeur catalog, "DATA CATALOG" supprimé, gradient bleu
+    tag: v6-aetherwx   # logo background-image 150px collé aux 4 coins
     replicas: 1
     port: 80
     resources:
