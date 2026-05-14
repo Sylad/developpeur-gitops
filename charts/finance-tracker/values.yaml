@@ -12,11 +12,13 @@ backend:
     limits:   { cpu: "500m", memory: "512Mi" }
   env:
     NODE_ENV: production
-    CORS_ORIGIN: "https://finance.dev.local"
+    CORS_ORIGIN: "https://finance.dev.local,https://finance.sladoire.dev"
     DATA_DIR: /app/data
     UPLOAD_DIR: /app/data/uploads
     SHARED_DATA_DIR: /app/shared-data
-    DEMO_FORCED_HOSTS: "trycloudflare.com,cfargotunnel.com,finance.dev.local"
+    # finance.sladoire.dev = portfolio public Cloudflare tunnel → forçage mode démo
+    # (les vraies données restent accessibles UNIQUEMENT via http://nas:4200)
+    DEMO_FORCED_HOSTS: "trycloudflare.com,cfargotunnel.com,finance.dev.local,finance.sladoire.dev"
     ALLOW_NO_PIN: "true"
   # Secret référencé pour FOOTBALL_API_KEY, ANTHROPIC_API_KEY, APP_PIN.
   # On utilisera SealedSecret pour push ça dans Git en chiffré.
