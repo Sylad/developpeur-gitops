@@ -12,6 +12,8 @@ spec:
     metadata:
       labels: { app: alerts-engine }
     spec:
+      imagePullSecrets:
+        - name: regcred
       containers:
         - name: alerts-engine
           image: "{{ .Values.services.alertsEngine.image }}:{{ .Values.services.alertsEngine.tag }}"

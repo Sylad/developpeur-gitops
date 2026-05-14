@@ -12,6 +12,8 @@ spec:
     metadata:
       labels: { app: maritime-frontend }
     spec:
+      imagePullSecrets:
+        - name: regcred
       containers:
         - name: frontend
           image: "{{ .Values.services.frontend.image }}:{{ .Values.services.frontend.tag }}"

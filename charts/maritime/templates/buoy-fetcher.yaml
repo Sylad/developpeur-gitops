@@ -12,6 +12,8 @@ spec:
     metadata:
       labels: { app: buoy-fetcher }
     spec:
+      imagePullSecrets:
+        - name: regcred
       containers:
         - name: buoy-fetcher
           image: "{{ .Values.services.buoyFetcher.image }}:{{ .Values.services.buoyFetcher.tag }}"

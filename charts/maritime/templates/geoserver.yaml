@@ -30,6 +30,8 @@ spec:
     metadata:
       labels: { app: geoserver }
     spec:
+      imagePullSecrets:
+        - name: regcred
       containers:
         - name: geoserver
           image: "{{ .Values.services.geoserver.image }}:{{ .Values.services.geoserver.tag }}"
@@ -56,6 +58,11 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /opt/geoserver_data
+            # Coverage rasters (GFS/AROME/ARPEGE/SST) écrits par les
+            # services weather-fetcher* et sst-fetcher. hostPath partagé
+            # car k3s local-path = RWO seulement (vague 2 quick fix).
+            - name: coverage-data
+              mountPath: /coverage
           resources:
             {{- toYaml .Values.services.geoserver.resources | nindent 12 }}
           startupProbe:
@@ -81,6 +88,10 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: geoserver-data
+        - name: coverage-data
+          hostPath:
+            path: /var/lib/maritime/coverage
+            type: DirectoryOrCreate
 ---
 # Service GeoServer — replace l'ancien stub que j'avais créé. Si le stub
 # existe encore, Helm le réconciliera (même nom = même Service).

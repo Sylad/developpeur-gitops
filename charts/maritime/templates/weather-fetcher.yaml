@@ -1,0 +1,63 @@
+{{- if .Values.services.weatherFetcher.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weather-fetcher
+  labels: { app: weather-fetcher }
+spec:
+  replicas: {{ .Values.services.weatherFetcher.replicas }}
+  selector:
+    matchLabels: { app: weather-fetcher }
+  template:
+    metadata:
+      labels: { app: weather-fetcher }
+    spec:
+      imagePullSecrets:
+        - name: regcred
+      containers:
+        - name: weather-fetcher
+          image: "{{ .Values.services.weatherFetcher.image }}:{{ .Values.services.weatherFetcher.tag }}"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: GEOSERVER_URL
+              value: "http://geoserver:8080/geoserver"
+            - name: GEOSERVER_ADMIN_USER
+              value: "admin"
+            - name: WIND_DIR
+              value: "/coverage/wind-speed"
+            - name: WAVE_HS_DIR
+              value: "/coverage/wave-hs"
+            - name: WAVE_DIR_DIR
+              value: "/coverage/wave-dir"
+            - name: WIND_ARROWS_DIR
+              value: "/wind-arrows"
+            - name: FORECAST_HOURS
+              value: "72"
+            - name: FORECAST_STEP
+              value: "6"
+            - name: ORCHESTRATOR_API
+              value: "http://api:3010/api"
+            - name: ORCHESTRATOR_SOURCE_NAME
+              value: "weather-fetcher"
+            {{- include "maritime.rmqEnv" . | nindent 12 }}
+          envFrom:
+            - secretRef:
+                name: maritime-shared-env
+                optional: true
+          volumeMounts:
+            - name: coverage-data
+              mountPath: /coverage
+            - name: wind-arrows-data
+              mountPath: /wind-arrows
+          resources:
+            {{- toYaml .Values.services.weatherFetcher.resources | nindent 12 }}
+      volumes:
+        - name: coverage-data
+          hostPath:
+            path: /var/lib/maritime/coverage
+            type: DirectoryOrCreate
+        - name: wind-arrows-data
+          hostPath:
+            path: /var/lib/maritime/wind-arrows
+            type: DirectoryOrCreate
+{{- end }}

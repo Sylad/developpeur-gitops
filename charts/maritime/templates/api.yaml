@@ -12,6 +12,8 @@ spec:
     metadata:
       labels: { app: maritime-api }
     spec:
+      imagePullSecrets:
+        - name: regcred
       containers:
         - name: api
           image: "{{ .Values.services.api.image }}:{{ .Values.services.api.tag }}"

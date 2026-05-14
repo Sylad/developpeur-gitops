@@ -12,6 +12,8 @@ spec:
     metadata:
       labels: { app: track-builder }
     spec:
+      imagePullSecrets:
+        - name: regcred
       containers:
         - name: track-builder
           image: "{{ .Values.services.trackBuilder.image }}:{{ .Values.services.trackBuilder.tag }}"

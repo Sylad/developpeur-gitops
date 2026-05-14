@@ -1,0 +1,59 @@
+{{- if .Values.services.weatherFetcherArome.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weather-fetcher-arome
+  labels: { app: weather-fetcher-arome }
+spec:
+  replicas: {{ .Values.services.weatherFetcherArome.replicas }}
+  selector:
+    matchLabels: { app: weather-fetcher-arome }
+  template:
+    metadata:
+      labels: { app: weather-fetcher-arome }
+    spec:
+      imagePullSecrets:
+        - name: regcred
+      containers:
+        - name: weather-fetcher-arome
+          image: "{{ .Values.services.weatherFetcherArome.image }}:{{ .Values.services.weatherFetcherArome.tag }}"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: GEOSERVER_URL
+              value: "http://geoserver:8080/geoserver"
+            - name: GEOSERVER_ADMIN_USER
+              value: "admin"
+            - name: WIND_DIR
+              value: "/coverage/wind-speed-arome"
+            - name: WIND_ARROWS_DIR
+              value: "/wind-arrows"
+            - name: FORECAST_HOURS
+              value: "24"
+            - name: SAMPLE_STEP_HOURS
+              value: "3"
+            - name: ORCHESTRATOR_API
+              value: "http://api:3010/api"
+            - name: ORCHESTRATOR_SOURCE_NAME
+              value: "weather-fetcher-arome"
+            {{- include "maritime.rmqEnv" . | nindent 12 }}
+          envFrom:
+            - secretRef:
+                name: maritime-shared-env
+                optional: true
+          volumeMounts:
+            - name: coverage-data
+              mountPath: /coverage
+            - name: wind-arrows-data
+              mountPath: /wind-arrows
+          resources:
+            {{- toYaml .Values.services.weatherFetcherArome.resources | nindent 12 }}
+      volumes:
+        - name: coverage-data
+          hostPath:
+            path: /var/lib/maritime/coverage
+            type: DirectoryOrCreate
+        - name: wind-arrows-data
+          hostPath:
+            path: /var/lib/maritime/wind-arrows
+            type: DirectoryOrCreate
+{{- end }}

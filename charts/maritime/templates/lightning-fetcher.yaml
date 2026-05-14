@@ -16,6 +16,8 @@ spec:
     metadata:
       labels: { app: lightning-fetcher }
     spec:
+      imagePullSecrets:
+        - name: regcred
       containers:
         - name: lightning-fetcher
           image: "{{ .Values.services.lightningFetcher.image }}:{{ .Values.services.lightningFetcher.tag }}"

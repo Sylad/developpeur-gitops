@@ -16,6 +16,8 @@ spec:
     metadata:
       labels: { app: ais-ingester }
     spec:
+      imagePullSecrets:
+        - name: regcred
       containers:
         - name: ais-ingester
           image: "{{ .Values.services.aisIngester.image }}:{{ .Values.services.aisIngester.tag }}"

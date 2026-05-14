@@ -8,7 +8,7 @@ services:
   # ─── API NestJS (core backend) ────────────────────────────────────
   api:
     enabled: true
-    image: maritime-api
+    image: ghcr.io/sylad/maritime-api
     # v2-debian : base Debian bookworm-slim au lieu d'Alpine — fix
     # undici fetch() qui timeoutait sur Alpine 3.23 musl libc en HTTPS
     # externe (USGS, METAR, hubeau-débits, etc.). https.request() marche
@@ -40,7 +40,7 @@ services:
   # v2-debian : base Debian (cf fix undici/Alpine).
   aisIngester:
     enabled: true
-    image: maritime-ais-ingester
+    image: ghcr.io/sylad/maritime-ais-ingester
     tag: v2-debian
     replicas: 1
     resources:
@@ -52,7 +52,7 @@ services:
   # ─── ais-decoder (consume RMQ → INSERT PG) ────────────────────────
   aisDecoder:
     enabled: true
-    image: maritime-ais-decoder
+    image: ghcr.io/sylad/maritime-ais-decoder
     tag: v1
     replicas: 1
     resources:
@@ -62,7 +62,7 @@ services:
   # ─── alerts-engine (consume RMQ + PG hypertable) ──────────────────
   alertsEngine:
     enabled: true
-    image: maritime-alerts-engine
+    image: ghcr.io/sylad/maritime-alerts-engine
     tag: v1
     replicas: 1
     resources:
@@ -76,7 +76,7 @@ services:
   # ─── track-builder (cron hourly) ──────────────────────────────────
   trackBuilder:
     enabled: true
-    image: maritime-track-builder
+    image: ghcr.io/sylad/maritime-track-builder
     tag: v1
     replicas: 1
     resources:
@@ -88,7 +88,7 @@ services:
   # v2-debian : fix undici/Alpine.
   lightningFetcher:
     enabled: true
-    image: maritime-lightning-fetcher
+    image: ghcr.io/sylad/maritime-lightning-fetcher
     tag: v2-debian
     replicas: 1
     resources:
@@ -100,7 +100,61 @@ services:
   # par bug undici. Bbox Europe étroite par défaut côté code.
   buoyFetcher:
     enabled: true
-    image: maritime-buoy-fetcher
+    image: ghcr.io/sylad/maritime-buoy-fetcher
+    tag: v1
+    replicas: 1
+    resources:
+      requests: { cpu: "50m",  memory: "128Mi" }
+      limits:   { cpu: "500m", memory: "512Mi" }
+
+  # ─── grib-parser (Python sidecar pour parser GRIB/NetCDF) ────────
+  # Service HTTP appelé par maritime-api orchestrator pour décoder
+  # les fichiers GRIB téléchargés par weather-fetcher*. Image GDAL
+  # (osgeo/gdal base, ~700MB) — pas concerné par bug undici.
+  gribParser:
+    enabled: true
+    image: ghcr.io/sylad/maritime-grib-parser
+    tag: v1
+    replicas: 1
+    resources:
+      requests: { cpu: "100m", memory: "256Mi" }
+      limits:   { cpu: "1",    memory: "1Gi" }
+
+  # ─── weather-fetcher (GFS wind + wave forecasts, cron 4x/jour) ────
+  # Écrit GeoTIFF dans /coverage/wind-speed, /coverage/wave-hs,
+  # /coverage/wave-dir partagé via hostPath /var/lib/maritime/coverage
+  # (single-node k3s = hostPath OK, à industrialiser via RWX/SeaweedFS).
+  weatherFetcher:
+    enabled: true
+    image: ghcr.io/sylad/maritime-weather-fetcher
+    tag: v1
+    replicas: 1
+    resources:
+      requests: { cpu: "100m", memory: "256Mi" }
+      limits:   { cpu: "1",    memory: "1Gi" }
+
+  weatherFetcherArpege:
+    enabled: true
+    image: ghcr.io/sylad/maritime-weather-fetcher-arpege
+    tag: v1
+    replicas: 1
+    resources:
+      requests: { cpu: "100m", memory: "256Mi" }
+      limits:   { cpu: "1",    memory: "1Gi" }
+
+  weatherFetcherArome:
+    enabled: true
+    image: ghcr.io/sylad/maritime-weather-fetcher-arome
+    tag: v1
+    replicas: 1
+    resources:
+      requests: { cpu: "100m", memory: "256Mi" }
+      limits:   { cpu: "1",    memory: "1Gi" }
+
+  # ─── sst-fetcher (NOAA OISST cron 06:00 UTC) ──────────────────────
+  sstFetcher:
+    enabled: true
+    image: ghcr.io/sylad/maritime-sst-fetcher
     tag: v1
     replicas: 1
     resources:
@@ -112,7 +166,7 @@ services:
   # PVC data_dir RWO single-replica preprod. Phase prod = StickySession + N replicas.
   geoserver:
     enabled: true
-    image: maritime-geoserver
+    image: ghcr.io/sylad/maritime-geoserver
     tag: v2  # v2 = v1 + JAR plugin custom IDW (fr.sladoire.maritime.idw)
     replicas: 1
     dataSize: 5Gi
@@ -123,7 +177,7 @@ services:
   # ─── Frontend Angular SPA + nginx (AetherWX brand) ────────────────
   frontend:
     enabled: true
-    image: maritime-frontend
+    image: ghcr.io/sylad/maritime-frontend
     tag: v5-aetherwx   # logo hero plein largeur catalog, "DATA CATALOG" supprimé, gradient bleu
     replicas: 1
     port: 80

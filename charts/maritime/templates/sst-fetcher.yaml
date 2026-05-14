@@ -1,0 +1,47 @@
+{{- if .Values.services.sstFetcher.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sst-fetcher
+  labels: { app: sst-fetcher }
+spec:
+  replicas: {{ .Values.services.sstFetcher.replicas }}
+  selector:
+    matchLabels: { app: sst-fetcher }
+  template:
+    metadata:
+      labels: { app: sst-fetcher }
+    spec:
+      imagePullSecrets:
+        - name: regcred
+      containers:
+        - name: sst-fetcher
+          image: "{{ .Values.services.sstFetcher.image }}:{{ .Values.services.sstFetcher.tag }}"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: GEOSERVER_URL
+              value: "http://geoserver:8080/geoserver"
+            - name: GEOSERVER_ADMIN_USER
+              value: "admin"
+            - name: COVERAGE_DIR
+              value: "/coverage/sst-daily"
+            - name: ORCHESTRATOR_API
+              value: "http://api:3010/api"
+            - name: ORCHESTRATOR_SOURCE_NAME
+              value: "sst-fetcher"
+            {{- include "maritime.rmqEnv" . | nindent 12 }}
+          envFrom:
+            - secretRef:
+                name: maritime-shared-env
+                optional: true
+          volumeMounts:
+            - name: coverage-data
+              mountPath: /coverage
+          resources:
+            {{- toYaml .Values.services.sstFetcher.resources | nindent 12 }}
+      volumes:
+        - name: coverage-data
+          hostPath:
+            path: /var/lib/maritime/coverage
+            type: DirectoryOrCreate
+{{- end }}
