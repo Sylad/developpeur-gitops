@@ -180,7 +180,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-0516a4e   # fix runtime initMap viewProj order
+    tag: sha-f62a8ee   # rasters meteo en ImageWMS (multi-projection)
     replicas: 1
     port: 80
     resources:
