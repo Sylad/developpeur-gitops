@@ -180,7 +180,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-83d70b6   # catalog-header background-size cover
+    tag: sha-08ae090   # fix TileWMS projection EPSG:3035 Lambert
     replicas: 1
     port: 80
     resources:
