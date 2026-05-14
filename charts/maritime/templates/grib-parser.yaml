@@ -19,7 +19,7 @@ spec:
           image: "{{ .Values.services.gribParser.image }}:{{ .Values.services.gribParser.tag }}"
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 8001
+            - containerPort: 8500
           resources:
             {{- toYaml .Values.services.gribParser.resources | nindent 12 }}
 ---
@@ -30,6 +30,6 @@ metadata:
 spec:
   selector: { app: grib-parser }
   ports:
-    - port: 8001
-      targetPort: 8001
+    - port: 8500
+      targetPort: 8500
 {{- end }}
