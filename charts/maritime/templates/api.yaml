@@ -25,6 +25,13 @@ spec:
             {{- end }}
             {{- include "maritime.dbUrlEnv" . | nindent 12 }}
             {{- include "maritime.rmqEnv" . | nindent 12 }}
+          # Secret hors-Git (créé manuellement, contient GOOGLE_CLIENT_ID,
+          # GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL). TODO : remplacer
+          # par SealedSecret quand kubeseal sera installé.
+          envFrom:
+            - secretRef:
+                name: maritime-google-oauth
+                optional: true
           resources:
             {{- toYaml .Values.services.api.resources | nindent 12 }}
 ---
