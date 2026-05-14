@@ -152,10 +152,12 @@ services:
       limits:   { cpu: "1",    memory: "1Gi" }
 
   # ─── sst-fetcher (NOAA OISST cron 06:00 UTC) ──────────────────────
+  # v2-prelim : fallback _preliminary.nc → URL fix pour les data <21j
+  # (NOAA publie d'abord preliminary, finalise 14-21j plus tard).
   sstFetcher:
     enabled: true
     image: ghcr.io/sylad/maritime-sst-fetcher
-    tag: v1
+    tag: v2-prelim
     replicas: 1
     resources:
       requests: { cpu: "50m",  memory: "128Mi" }
