@@ -1,0 +1,28 @@
+{{- if .Values.services.lightningFetcher.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lightning-fetcher
+  labels: { app: lightning-fetcher }
+spec:
+  replicas: {{ .Values.services.lightningFetcher.replicas }}
+  # Stream WebSocket (lightningmaps.org) — single replica pour éviter
+  # de dupliquer les events.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app: lightning-fetcher }
+  template:
+    metadata:
+      labels: { app: lightning-fetcher }
+    spec:
+      containers:
+        - name: lightning-fetcher
+          image: "{{ .Values.services.lightningFetcher.image }}:{{ .Values.services.lightningFetcher.tag }}"
+          imagePullPolicy: IfNotPresent
+          env:
+            {{- include "maritime.dbUrlEnv" . | nindent 12 }}
+            {{- include "maritime.rmqEnv" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.services.lightningFetcher.resources | nindent 12 }}
+{{- end }}

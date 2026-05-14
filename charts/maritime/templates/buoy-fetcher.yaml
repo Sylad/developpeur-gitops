@@ -1,0 +1,34 @@
+{{- if .Values.services.buoyFetcher.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: buoy-fetcher
+  labels: { app: buoy-fetcher }
+spec:
+  replicas: {{ .Values.services.buoyFetcher.replicas }}
+  selector:
+    matchLabels: { app: buoy-fetcher }
+  template:
+    metadata:
+      labels: { app: buoy-fetcher }
+    spec:
+      containers:
+        - name: buoy-fetcher
+          image: "{{ .Values.services.buoyFetcher.image }}:{{ .Values.services.buoyFetcher.tag }}"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: ORCHESTRATOR_API
+              value: "http://api:3010/api"
+            - name: ORCHESTRATOR_SOURCE_NAME
+              value: "buoy-fetcher"
+            - name: BUOY_FETCH_INTERVAL_MIN
+              value: "1440"
+            {{- include "maritime.dbUrlEnv" . | nindent 12 }}
+          envFrom:
+            # Fournit ORCHESTRATOR_JOB_TOKEN (et autres si pertinent).
+            - secretRef:
+                name: maritime-shared-env
+                optional: true
+          resources:
+            {{- toYaml .Values.services.buoyFetcher.resources | nindent 12 }}
+{{- end }}

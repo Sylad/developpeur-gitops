@@ -34,23 +34,20 @@ services:
       ADMIN_USERNAME: sylvain
 
   # ─── ais-ingester (aisstream.io WebSocket → publish RMQ ais.raw) ──
-  # Source du flux AIS live. Le Secret `ais-ingester-secrets` doit
-  # contenir AISSTREAM_API_KEY (key gratuite sur aisstream.io).
+  # Source du flux AIS live. Secret K8s `maritime-shared-env` (créé hors
+  # Git, voir HANDOFF.md) contient AISSTREAM_API_KEY + AIS_BBOX_* +
+  # GEOSERVER_ADMIN_* + CANDHIS_API_KEY + GRIB_PARSER_URL.
+  # v2-debian : base Debian (cf fix undici/Alpine).
   aisIngester:
     enabled: true
     image: maritime-ais-ingester
-    tag: v1
+    tag: v2-debian
     replicas: 1
     resources:
       requests: { cpu: "50m", memory: "128Mi" }
       limits:   { cpu: "500m", memory: "512Mi" }
-    env:
-      # BBox Europe étroite — même config que NAS (cohérent avec frontend).
-      BBOX_SW_LAT: "30"
-      BBOX_SW_LON: "-15"
-      BBOX_NE_LAT: "65"
-      BBOX_NE_LON: "30"
-    secretName: ais-ingester-secrets  # contient AISSTREAM_API_KEY
+    env: {}  # BBox + AISSTREAM_API_KEY viennent du secret maritime-shared-env
+    secretName: maritime-shared-env
 
   # ─── ais-decoder (consume RMQ → INSERT PG) ────────────────────────
   aisDecoder:
@@ -80,6 +77,30 @@ services:
   trackBuilder:
     enabled: true
     image: maritime-track-builder
+    tag: v1
+    replicas: 1
+    resources:
+      requests: { cpu: "50m",  memory: "128Mi" }
+      limits:   { cpu: "500m", memory: "512Mi" }
+
+  # ─── lightning-fetcher (WebSocket lightningmaps.org → RMQ) ────────
+  # Stream live des éclairs en Europe. Single replica (WSS).
+  # v2-debian : fix undici/Alpine.
+  lightningFetcher:
+    enabled: true
+    image: maritime-lightning-fetcher
+    tag: v2-debian
+    replicas: 1
+    resources:
+      requests: { cpu: "50m",  memory: "128Mi" }
+      limits:   { cpu: "500m", memory: "512Mi" }
+
+  # ─── buoy-fetcher (EMODnet WFS → seed bouées quotidien) ───────────
+  # Cron quotidien 1440 min. Python 3.12-slim (glibc), pas concerné
+  # par bug undici. Bbox Europe étroite par défaut côté code.
+  buoyFetcher:
+    enabled: true
+    image: maritime-buoy-fetcher
     tag: v1
     replicas: 1
     resources:
