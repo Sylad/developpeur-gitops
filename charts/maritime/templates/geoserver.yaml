@@ -53,8 +53,40 @@ spec:
             - name: GEOSERVER_JDBCCONFIG_PASSWORD
               valueFrom:
                 secretKeyRef: { name: pg-catalog-app, key: password }
+            # JVM tuned pour GeoServer (Sylvain 2026-05-14) :
+            # - Xmx6g : heap généreuse pour IDW + reproject + mosaic
+            # - G1GC : low-pause collector, stable sur long-running
+            # - MaxGCPauseMillis 200 : cible pauses GC raisonnables
+            # - StringDeduplication : économise heap sur les nombreuses
+            #   strings dupliquées (SLD, attribut layers, etc.)
+            # - HeapDump on OOM : capture pour post-mortem dans /tmp
+            # - ExitOnOutOfMemoryError : kill pod sur OOM → restart K8s
+            #   propre au lieu d'un zombie qui mange la RAM
+            # - forceXY : EPSG axis order stable (lon,lat) — connu pour
+            #   éviter les bugs de reproject silencieux
+            # - timezone UTC + encoding UTF-8 : explicites
             - name: JAVA_OPTS
-              value: "-Xms512m -Xmx2500m"  # 2g→2500m (2026-05-14) OOM heap sur render IDW 4Mpx
+              value: >-
+                -Xms512m -Xmx6g
+                -XX:+UseG1GC
+                -XX:MaxGCPauseMillis=200
+                -XX:+ParallelRefProcEnabled
+                -XX:+UseStringDeduplication
+                -XX:+HeapDumpOnOutOfMemoryError
+                -XX:HeapDumpPath=/tmp/heapdump.hprof
+                -XX:+ExitOnOutOfMemoryError
+                -Djava.awt.headless=true
+                -Dorg.geotools.referencing.forceXY=true
+                -Duser.timezone=UTC
+                -Dfile.encoding=UTF-8
+            # Accélération native JAI (PNG/JPEG/TIFF) — encode jusqu'à
+            # 3-5× plus vite que le pure Java sur les rasters volumineux.
+            - name: JAI_PNG_NATIVE_ACCELERATION
+              value: "true"
+            - name: JAI_JPEG_NATIVE_ACCELERATION
+              value: "true"
+            - name: JAI_TIFF_NATIVE_ACCELERATION
+              value: "true"
           volumeMounts:
             - name: data
               mountPath: /opt/geoserver_data

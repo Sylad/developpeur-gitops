@@ -173,8 +173,12 @@ services:
     replicas: 1
     dataSize: 5Gi
     resources:
-      requests: { cpu: "500m", memory: "1Gi" }
-      limits:   { cpu: "2",    memory: "3Gi" }
+      requests: { cpu: "500m", memory: "2Gi" }
+      limits:   { cpu: "2",    memory: "7Gi" }
+      # Sylvain 2026-05-14 : « si y a du rab, GS vit très bien avec 6Go ».
+      # Heap = 6g, limit pod = 7Gi (laisse 1 Gi pour metaspace + thread
+      # stacks + page cache + tmp). Big-Blue et Mini-Blue ont 32 Gi chacun
+      # donc largement de la marge.
 
   # ─── Frontend Angular SPA + nginx (AetherWX brand) ────────────────
   frontend:
