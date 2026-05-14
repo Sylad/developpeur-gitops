@@ -20,8 +20,20 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: {{ .Values.services.frontend.port }}
+          volumeMounts:
+            # nginx sert /wind-arrows/manifest.json + *.geojson depuis ce
+            # path (cf nginx.conf de l'image). Les fichiers sont écrits
+            # par weather-fetcher* dans le hostPath partagé.
+            - name: wind-arrows-data
+              mountPath: /usr/share/nginx/wind-arrows
+              readOnly: true
           resources:
             {{- toYaml .Values.services.frontend.resources | nindent 12 }}
+      volumes:
+        - name: wind-arrows-data
+          hostPath:
+            path: /var/lib/maritime/wind-arrows
+            type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: Service
