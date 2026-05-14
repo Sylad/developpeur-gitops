@@ -180,7 +180,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-95380f5   # smart adaptive time-slider
+    tag: sha-83d70b6   # catalog-header background-size cover
     replicas: 1
     port: 80
     resources:
