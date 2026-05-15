@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-1eab083   # default raster-only SST/wave-hs + log diagnostic contour
+    tag: sha-53d2f57   # readNative force native getOriginalGridRange (fix stair-step)
     replicas: 1
     dataSize: 5Gi
     resources:
