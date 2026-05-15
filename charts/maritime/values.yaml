@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-1bf0656   # invertGridGeometry → target/N + CAP 1024 (fix OOM full screen)
+    tag: sha-a56b0c9   # IDWContour invert borné + bootstrap SST/wave-hs factor=12
     replicas: 1
     dataSize: 5Gi
     resources:
@@ -188,7 +188,7 @@ services:
   styleBootstrap:
     enabled: true
     image: ghcr.io/sylad/maritime-style-bootstrap
-    tag: sha-efe32a7   # IDW factor 3→12 (lissage plein écran 2560×1271)
+    tag: sha-a56b0c9   # SST + wave-hs ajoutés au bootstrap (factor=12 propagé)
                   # détecte le nouvel image digest et re-run le Job.
 
   # ─── Frontend Angular SPA + nginx (AetherWX brand) ────────────────
