@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-8f9d2a0   # diagnostic samples cellule pour confirmer NN-replication
+    tag: sha-22fa7d3   # revert GG injection (NaN bug) + keep cache
     replicas: 1
     dataSize: 5Gi
     resources:
