@@ -188,7 +188,7 @@ services:
   styleBootstrap:
     enabled: true
     image: ghcr.io/sylad/maritime-style-bootstrap
-    tag: sha-1eab083   # SLDs sst-only / wave-hs-only ajoutés (raster-only default)
+    tag: sha-91e42ad   # bootstrap étendu : FEATURETYPES_TO_CONFIGURE (vessel_tracks_daily mmsi+day)
                   # détecte le nouvel image digest et re-run le Job.
 
   # ─── Frontend Angular SPA + nginx (AetherWX brand) ────────────────
