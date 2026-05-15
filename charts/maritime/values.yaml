@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-eb415b0   # cleanup diagnostic logs
+    tag: sha-ab6824f   # REVERT pre-session : IDWProcess original + SLDs factor=4/8
     replicas: 1
     dataSize: 5Gi
     resources:
@@ -188,7 +188,7 @@ services:
   styleBootstrap:
     enabled: true
     image: ghcr.io/sylad/maritime-style-bootstrap
-    tag: sha-91e42ad   # bootstrap étendu : FEATURETYPES_TO_CONFIGURE (vessel_tracks_daily mmsi+day)
+    tag: sha-ab6824f   # SLDs idw:IDW + factor=4/8 + ContrastEnhancement+BICUBIC (revert pre-session)
                   # détecte le nouvel image digest et re-run le Job.
 
   # ─── Frontend Angular SPA + nginx (AetherWX brand) ────────────────
