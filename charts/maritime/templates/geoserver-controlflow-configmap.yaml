@@ -1,0 +1,25 @@
+{{- if .Values.services.geoserver.enabled }}
+# Control-Flow config pour GeoServer.
+# Le contrôleur du plugin lit `${GEOSERVER_DATA_DIR}/controlflow.properties`
+# au démarrage. On l'injecte via ConfigMap + volumeMount subPath plutôt
+# que via cluster-bootstrap.sh (l'image upstream `docker.osgeo.org/geoserver`
+# ne tient pas notre wrapper, et le baker dans le Dockerfile imposerait
+# un rebuild image à chaque tweak). Source de vérité : maritime-atlas
+# repo geoserver/cluster/controlflow.properties.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: geoserver-controlflow
+data:
+  controlflow.properties: |
+    # GeoServer Control-Flow extension — limit concurrent requests per service.
+    # Calibré 2 replicas × Big-Blue avec Xmx6g chacun (Sylvain 2026-05-15).
+    # Caps PER-REPLICA.
+
+    ows.global=8
+    ows.wms.getmap=3
+    ows.wfs.getfeature=3
+    ows.wps.execute=1
+    user=4
+    timeout=30
+{{- end }}

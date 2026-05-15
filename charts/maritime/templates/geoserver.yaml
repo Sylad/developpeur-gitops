@@ -152,6 +152,12 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /opt/geoserver_data
+            # Control-Flow config injected via ConfigMap (subPath single-file
+            # overlay sur la PVC RWX). Changement = juste re-apply chart, pas
+            # de rebuild image. Le plugin GS le lit au startup.
+            - name: controlflow-config
+              mountPath: /opt/geoserver_data/controlflow.properties
+              subPath: controlflow.properties
             # GWC tile cache : overlay emptyDir per-pod sur le subdir
             # de la PVC RWX partagée. Évite la race condition sur les
             # writes de tile entre les 2 replicas (chacun a son propre
@@ -190,6 +196,9 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: geoserver-data
+        - name: controlflow-config
+          configMap:
+            name: geoserver-controlflow
         # GWC tile cache local per-pod (emptyDir) — voir comment volumeMount.
         - name: gwc-cache
           emptyDir:
