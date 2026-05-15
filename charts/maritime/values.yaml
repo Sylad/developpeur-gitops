@@ -195,7 +195,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-77c7b53   # geoJsonFmt lazy projection (fix wind arrows Lambert)
+    tag: sha-444b489   # vessels CQL_FILTER 15min anchored au time slider
     replicas: 1
     port: 80
     resources:
