@@ -49,7 +49,7 @@ kubectl annotate application "$CHART_NAME" -n argocd argocd.argoproj.io/refresh=
 
 echo
 echo "=== [4/4] Force ArgoCD refresh Mini-Blue (via SSH WSL) ==="
-ssh "${MINI_BLUE_HOST:-sylva@192.168.1.26}" "wsl bash -c 'kubectl annotate application ${CHART_NAME} -n argocd argocd.argoproj.io/refresh=hard --overwrite'" || \
+ssh "${MINI_BLUE_HOST:-sylad@192.168.1.26}" "wsl bash -c 'kubectl annotate application ${CHART_NAME} -n argocd argocd.argoproj.io/refresh=hard --overwrite'" || \
   echo "⚠️ Refresh Mini-Blue failed (vérifier connexion SSH)"
 
 echo

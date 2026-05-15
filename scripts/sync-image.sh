@@ -10,7 +10,7 @@
 # Pré-requis :
 #   - Docker daemon local (WSL2 / Big-Blue)
 #   - sudo passwordless OU on demandera le mdp pour `k3s ctr import` côté Big-Blue
-#   - SSH sur Mini-Blue (host alias `mini-blue` ou IP 192.168.1.26) avec user `sylva`
+#   - SSH sur Mini-Blue (host alias `mini-blue` ou IP 192.168.1.26) avec user `sylad`
 #   - kubectl context pointant vers Big-Blue par défaut (peu importe, on ne touche pas K8s ici)
 #
 # Output :
@@ -24,7 +24,7 @@ SERVICE_PATH="${1:?Usage: sync-image.sh <service-path> <image-name> <tag>}"
 IMAGE_NAME="${2:?Image name required}"
 TAG="${3:?Tag required}"
 
-MINI_BLUE_HOST="${MINI_BLUE_HOST:-sylva@192.168.1.26}"
+MINI_BLUE_HOST="${MINI_BLUE_HOST:-sylad@192.168.1.26}"
 MINI_BLUE_WIN_PATH="${MINI_BLUE_WIN_PATH:-/Users/sylva}"
 
 TAR_PATH="/tmp/${IMAGE_NAME}-${TAG}.tar"
