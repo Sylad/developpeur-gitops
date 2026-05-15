@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-3d4a487   # native GG + ThreadLocal cache (fix disposed reader + stair-step)
+    tag: sha-8f9d2a0   # diagnostic samples cellule pour confirmer NN-replication
     replicas: 1
     dataSize: 5Gi
     resources:
