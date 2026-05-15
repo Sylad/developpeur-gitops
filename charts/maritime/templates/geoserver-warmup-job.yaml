@@ -89,7 +89,7 @@ spec:
               NS=$(cat $SA_DIR/namespace)
               POD_IPS=$(curl -s --cacert $SA_DIR/ca.crt -H "Authorization: Bearer $TOKEN" \
                 "https://kubernetes.default.svc/api/v1/namespaces/$NS/pods?labelSelector=app%3Dgeoserver" \
-                | sed -n 's/.*"podIP": *"\([^"]*\)".*/\1/p' | sort -u)
+                | tr ',' '\n' | grep -oE '"podIP":"[0-9.]+"' | grep -oE '[0-9.]+' | sort -u)
               echo "[warmup] target pods:"
               echo "$POD_IPS"
 
