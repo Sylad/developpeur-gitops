@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-4be04af   # ARCHITECTURAL + stub IDWProcessFactory pour catalog legacy
+    tag: sha-b87bee7   # ARCHITECTURAL rename : idwInterpolate / idwContour (no colon)
     replicas: 1
     dataSize: 5Gi
     resources:
@@ -188,7 +188,7 @@ services:
   styleBootstrap:
     enabled: true
     image: ghcr.io/sylad/maritime-style-bootstrap
-    tag: sha-cee7546   # SLDs factor=12 + BILINEAR (dernier commit avec SLD changes)
+    tag: sha-b87bee7   # SLDs renamed idwInterpolate / idwContour
                   # détecte le nouvel image digest et re-run le Job.
 
   # ─── Frontend Angular SPA + nginx (AetherWX brand) ────────────────
