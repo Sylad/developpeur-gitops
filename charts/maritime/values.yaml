@@ -188,7 +188,7 @@ services:
   styleBootstrap:
     enabled: true
     image: ghcr.io/sylad/maritime-style-bootstrap
-    tag: sha-d879a1d   # SST/wave-hs SLD nettoyés : retire BICUBIC+ContrastEnhancement
+    tag: sha-ddb97cc   # VendorOption BILINEAR remis (interp du reader avant IDW)
                   # détecte le nouvel image digest et re-run le Job.
 
   # ─── Frontend Angular SPA + nginx (AetherWX brand) ────────────────
