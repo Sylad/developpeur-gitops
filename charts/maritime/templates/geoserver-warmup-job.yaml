@@ -1,0 +1,66 @@
+{{- if .Values.services.geoserver.enabled }}
+# GeoServer warm-up Job — PostSync hook
+#
+# Le premier rendu WMS full-screen sur un raster (SST, wind, wave) prend
+# 10-15s à cause du cold cache JAI/granule : ImageMosaic doit indexer les
+# GeoTIFFs, charger le SLD, allouer les buffers BICUBIC, etc. Les requêtes
+# suivantes sur le même BBOX = 0.5s grâce au cache.
+#
+# Pour éviter le "SST apparaît puis disparait" (Sylvain 2026-05-15) côté
+# UX, on pré-chauffe le cache après chaque deploy en tirant quelques
+# GetMap fullscreen sur les BBOX Europe communes. Tourne en arrière-plan,
+# n'impacte pas les requêtes utilisateur (control-flow plafonne).
+#
+# Idempotent : si le cache est déjà chaud, les requêtes répondent
+# instantanément, donc le Job termine en quelques secondes.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: geoserver-warmup
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 2
+  template:
+    metadata:
+      labels: { app: geoserver-warmup }
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: warmup
+          image: curlimages/curl:8.10.1
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              GS=http://geoserver:8080/geoserver/maritime/wms
+              COMMON="REQUEST=GetMap&SERVICE=WMS&VERSION=1.3.0&FORMAT=image/png&STYLES=&TRANSPARENT=true&WIDTH=1280&HEIGHT=720&CRS=EPSG:3857"
+
+              # BBOXes pré-chauffées : viewport Europe initial du frontend
+              # + Atlantique/Med élargi pour couvrir les pan probables.
+              BBOXES="
+                -2852561,4306416,3409159,7415263
+                -800746,4356862,2017012,5755836
+                -1500000,4500000,2500000,6500000
+                -3000000,4000000,3500000,7500000
+              "
+              LAYERS="maritime:sst-daily maritime:wind-speed maritime:wind-speed-arpege maritime:wind-speed-arome maritime:wave-hs"
+
+              echo "[warmup] pré-chauffage cache GS sur ${LAYERS} × $(echo "$BBOXES" | wc -l) BBOXes"
+              for LAYER in $LAYERS; do
+                for BBOX in $BBOXES; do
+                  T_START=$(date +%s)
+                  HTTP=$(curl -s -o /dev/null -w "%{http_code}" "${GS}?${COMMON}&LAYERS=${LAYER}&BBOX=${BBOX}")
+                  T_END=$(date +%s)
+                  echo "  ${LAYER} ${BBOX} → HTTP ${HTTP} in $((T_END-T_START))s"
+                done
+              done
+              echo "[warmup] done."
+          resources:
+            requests: { cpu: "10m",  memory: "16Mi" }
+            limits:   { cpu: "100m", memory: "64Mi" }
+{{- end }}
