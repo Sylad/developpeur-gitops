@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: v3-idw-fix   # fix ArrayIndexOutOfBoundsException EPSG:3857 (getSamples minX/minY)
+    tag: sha-b12aed9   # invertGridGeometry returns null (fix pixelisé grande resolution)
     replicas: 1
     dataSize: 5Gi
     resources:
