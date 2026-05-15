@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-ecedd61   # cleanup : log FINE + retire BILINEAR (architectural propre)
+    tag: sha-6a61fd0   # Modified Shepard's method (fix dot artifacts user report)
     replicas: 1
     dataSize: 5Gi
     resources:
