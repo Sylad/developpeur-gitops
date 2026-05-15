@@ -66,14 +66,15 @@ spec:
               set -eu
               F=/opt/geoserver_data/jdbcconfig/jdbcconfig.properties
               mkdir -p /opt/geoserver_data/jdbcconfig
-              if [ ! -f "$F" ]; then
-                # Fresh PVC (PVC RWX migration 2026-05-15) : bootstrap le
-                # fichier complet depuis zéro. L'image upstream
-                # docker.osgeo.org/geoserver ne tient pas notre wrapper
-                # cluster-bootstrap.sh, et les env vars GEOSERVER_JDBCCONFIG_*
-                # ne suffisent pas — le plugin lit ce .properties au boot.
-                echo "jdbcconfig.properties absent → bootstrap from scratch"
-                cat > "$F" <<EOF
+              # Toujours rewrite total : l'image upstream
+              # docker.osgeo.org/geoserver écrit un default file avec
+              # `enabled=false` + jdbcUrl localhost à son premier boot.
+              # Si on se contente de re-template les credentials, le rest
+              # reste à `enabled=false` → JDBCConfig disabled → Workspace
+              # maritime not found (PVC RWX migration 2026-05-15). On
+              # écrit la conf complète à chaque boot, idempotent.
+              echo "Writing $F from secret pg-catalog-app + values inline…"
+              cat > "$F" <<EOF
               enabled=true
               initdb=false
               import=false
@@ -85,15 +86,9 @@ spec:
               pool.maxActive=10
               pool.poolPreparedStatements=true
               pool.maxOpenPreparedStatements=50
+              pool.testOnBorrow=true
+              pool.validationQuery=SELECT now()
               EOF
-                exit 0
-              fi
-              echo "Re-templating credentials in $F from secret pg-catalog-app…"
-              T=$(mktemp)
-              grep -v "^password=\|^username=" "$F" > "$T"
-              echo "username=$JDBC_USER" >> "$T"
-              echo "password=$JDBC_PASS" >> "$T"
-              mv "$T" "$F"
               echo "Done."
           env:
             - name: JDBC_USER
