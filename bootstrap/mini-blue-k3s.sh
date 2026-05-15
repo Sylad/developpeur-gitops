@@ -82,6 +82,11 @@ helm upgrade --install keda kedacore/keda -n infra --wait --timeout 5m
 kubectl apply -f https://github.com/rabbitmq/cluster-operator/releases/latest/download/cluster-operator.yml
 
 echo "=== 8/8 — ArgoCD + bootstrap Application ==="
+# Polling rapide (Sylvain 2026-05-15) : default 180s trop lent pour
+# notre archi multi-cluster où le webhook GitHub ne notifie qu'un seul
+# cluster (l'autre dépend du polling). 30s + jitter 10s = compromis
+# réactivité / charge GitHub API. Big-Blue garde le webhook (sync ~2s),
+# Mini-Blue sync via polling 30s.
 helm upgrade --install argocd argo/argo-cd -n argocd \
   --set 'configs.params.server\.insecure=true' \
   --set server.ingress.enabled=true \
@@ -92,6 +97,8 @@ helm upgrade --install argocd argo/argo-cd -n argocd \
   --set controller.replicas=1 \
   --set applicationSet.replicas=1 \
   --set repoServer.replicas=1 \
+  --set 'configs.cm.timeout\.reconciliation=30s' \
+  --set 'configs.cm.timeout\.reconciliation\.jitter=10s' \
   --wait --timeout 10m
 
 cat <<'YAML' | kubectl apply -f -
