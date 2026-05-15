@@ -169,8 +169,8 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-1fe43c6   # REVERT pre-session + fix raster.getMinX (GS reproject gotcha)
-    replicas: 1
+    tag: sha-c0fe28f   # control-flow ajusté 2 replicas (getmap 6→3, global 16→8)
+    replicas: 2
     dataSize: 5Gi
     resources:
       requests: { cpu: "500m", memory: "2Gi" }

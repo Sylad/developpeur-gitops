@@ -7,8 +7,15 @@ kind: PersistentVolumeClaim
 metadata:
   name: geoserver-data
 spec:
-  accessModes: [ReadWriteOnce]
-  storageClassName: local-path
+  # ReadWriteMany via Longhorn Share Manager (NFS sous-jacent). Permet à
+  # plusieurs replicas GS de mount la même PVC simultanément. Compromis
+  # accepté preprod 2026-05-15 : workspaces SLD files lus par toutes les
+  # replicas (style-bootstrap Job écrit, replicas read-only en pratique) ;
+  # GWC tile cache potentiellement en race condition sur le même tile en
+  # cours d'écriture (rare ; à isoler via S3 BlobStore SeaweedFS quand on
+  # passera à >2 replicas ou prod).
+  accessModes: [ReadWriteMany]
+  storageClassName: longhorn
   resources:
     requests:
       storage: {{ .Values.services.geoserver.dataSize }}
@@ -21,9 +28,12 @@ metadata:
 spec:
   replicas: {{ .Values.services.geoserver.replicas }}
   strategy:
-    # Recreate vs RollingUpdate : 1 replica + PVC RWO = un seul pod peut
-    # mount à la fois, donc RollingUpdate provoque un deadlock.
-    type: Recreate
+    # RollingUpdate compatible avec PVC RWX Longhorn : plusieurs pods
+    # peuvent mount la même PVC en parallèle pendant le rollout.
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels: { app: geoserver }
   template:
@@ -142,9 +152,17 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /opt/geoserver_data
+            # GWC tile cache : overlay emptyDir per-pod sur le subdir
+            # de la PVC RWX partagée. Évite la race condition sur les
+            # writes de tile entre les 2 replicas (chacun a son propre
+            # cache éphémère, recalcule sur miss). Compromis : 2× travail
+            # IDW si tile demandée d'abord côté replica A puis B. Acceptable
+            # preprod ; à remplacer par GWC S3 BlobStore SeaweedFS quand
+            # >2 replicas ou prod.
+            - name: gwc-cache
+              mountPath: /opt/geoserver_data/gwc
             # Coverage rasters (GFS/AROME/ARPEGE/SST) écrits par les
-            # services weather-fetcher* et sst-fetcher. hostPath partagé
-            # car k3s local-path = RWO seulement (vague 2 quick fix).
+            # services weather-fetcher* et sst-fetcher. PVC RWX Longhorn.
             - name: coverage-data
               mountPath: /coverage
           resources:
@@ -172,6 +190,10 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: geoserver-data
+        # GWC tile cache local per-pod (emptyDir) — voir comment volumeMount.
+        - name: gwc-cache
+          emptyDir:
+            sizeLimit: 2Gi
         - name: coverage-data
           persistentVolumeClaim:
             claimName: maritime-coverage
