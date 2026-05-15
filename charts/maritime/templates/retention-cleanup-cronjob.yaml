@@ -1,0 +1,68 @@
+{{- if .Values.retentionCleanup.enabled }}
+# Maritime — Retention cleanup CronJob
+#
+# Aligne les volumes DB sur la fenêtre time-bar UI -1j/+7j (Sylvain
+# 2026-05-15). TimescaleDB n'est pas installée sur le cluster CNPG :
+# add_retention_policy() est un stub no-op (héritage init scripts), donc
+# pas de retention automatique. On gère via un CronJob k8s qui exec
+# `psql DELETE` quotidiennement.
+#
+# Schedule 03:30 UTC = heure creuse côté trafic AIS Europe. Le DELETE
+# tourne à priorité basse vs les INSERT temps-réel — TimescaleDB-less
+# vacuum manuel sur la fenêtre supprimée garde le bloat raisonnable.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: maritime-retention-cleanup
+  namespace: {{ .Release.Namespace }}
+spec:
+  schedule: "30 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: psql
+              # Image CNPG officielle = postgres client + cnpg utilities,
+              # même version majeure que pg-data → compat protocole garantie.
+              image: ghcr.io/cloudnative-pg/postgresql:16
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -e
+                  export PGPASSWORD="$DB_PASSWORD"
+                  echo "[retention] $(date -Iseconds) cleanup start"
+                  psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" <<'SQL'
+                    DELETE FROM vessel_positions WHERE ts < now() - INTERVAL '1 day';
+                    DELETE FROM lightning_strikes WHERE ts < now() - INTERVAL '1 day';
+                    DELETE FROM alerts WHERE ts < now() - INTERVAL '1 day';
+                    DELETE FROM buoy_observations WHERE ts < now() - INTERVAL '1 day';
+                    DELETE FROM vessels WHERE last_seen < now() - INTERVAL '1 day';
+                    DELETE FROM vessel_tracks_daily WHERE day < CURRENT_DATE - INTERVAL '7 days';
+                    VACUUM (ANALYZE) vessel_positions;
+                    VACUUM (ANALYZE) lightning_strikes;
+                    VACUUM (ANALYZE) alerts;
+                    VACUUM (ANALYZE) buoy_observations;
+                    VACUUM (ANALYZE) vessels;
+                  SQL
+                  echo "[retention] $(date -Iseconds) cleanup done"
+              env:
+                # CNPG génère un Secret pg-data-app avec username/password/host/dbname.
+                - name: DB_HOST
+                  valueFrom: { secretKeyRef: { name: pg-data-app, key: host } }
+                - name: DB_USER
+                  valueFrom: { secretKeyRef: { name: pg-data-app, key: username } }
+                - name: DB_PASSWORD
+                  valueFrom: { secretKeyRef: { name: pg-data-app, key: password } }
+                - name: DB_NAME
+                  valueFrom: { secretKeyRef: { name: pg-data-app, key: dbname } }
+              resources:
+                requests: { cpu: "50m",  memory: "64Mi" }
+                limits:   { cpu: "500m", memory: "256Mi" }
+{{- end }}

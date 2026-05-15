@@ -221,3 +221,10 @@ coverage:
   storageClass: longhorn
   coverageSize: 10Gi
   windArrowsSize: 2Gi
+
+# ─── Retention cleanup CronJob (-1j/+7j) ────────────────────────────
+# TimescaleDB n'est pas installée sur ce cluster (add_retention_policy
+# stub no-op), donc on fait le cleanup via un CronJob k8s quotidien à
+# 03:30 UTC. Aligne les volumes sur la fenêtre time-bar UI.
+retentionCleanup:
+  enabled: true
