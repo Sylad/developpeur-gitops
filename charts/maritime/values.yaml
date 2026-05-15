@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-e2ff374   # debug log : dump tous les params reçus
+    tag: sha-e522aca   # stabilisé : factor=12 + BILINEAR (post investigation native)
     replicas: 1
     dataSize: 5Gi
     resources:
@@ -188,7 +188,7 @@ services:
   styleBootstrap:
     enabled: true
     image: ghcr.io/sylad/maritime-style-bootstrap
-    tag: sha-605b82f   # SLDs factor=24 + retire BILINEAR (customizeReadParams natif)
+    tag: sha-e522aca   # SLDs factor=12 + BILINEAR remis (stabilisation)
                   # détecte le nouvel image digest et re-run le Job.
 
   # ─── Frontend Angular SPA + nginx (AetherWX brand) ────────────────
