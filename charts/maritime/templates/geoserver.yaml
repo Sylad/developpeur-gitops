@@ -123,6 +123,14 @@ spec:
                 -Dorg.geotools.referencing.forceXY=true
                 -Duser.timezone=UTC
                 -Dfile.encoding=UTF-8
+            # L'image GeoServer (Docker Hub officielle) injecte
+            # `EXTRA_JAVA_OPTS=-Xms256m -Xmx1g` via CATALINA_OPTS, qui
+            # se concatène APRÈS $JAVA_OPTS dans la commande JVM → le
+            # dernier -Xmx gagne et notre 6g est silencieusement écrasé
+            # à 1g. Diagnostiqué via heap dump 1.1 GB sur OOM (Sylvain
+            # 2026-05-15). On override pour matcher JAVA_OPTS.
+            - name: EXTRA_JAVA_OPTS
+              value: "-Xms512m -Xmx6g"
             # Accélération native JAI (PNG/JPEG/TIFF) — encode jusqu'à
             # 3-5× plus vite que le pure Java sur les rasters volumineux.
             - name: JAI_PNG_NATIVE_ACCELERATION
