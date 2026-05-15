@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-ab6824f   # REVERT pre-session : IDWProcess original + SLDs factor=4/8
+    tag: sha-1fe43c6   # REVERT pre-session + fix raster.getMinX (GS reproject gotcha)
     replicas: 1
     dataSize: 5Gi
     resources:
