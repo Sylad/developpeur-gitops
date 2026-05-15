@@ -188,7 +188,7 @@ services:
   styleBootstrap:
     enabled: true
     image: ghcr.io/sylad/maritime-style-bootstrap
-    tag: sha-ab6824f   # SLDs idw:IDW + factor=4/8 + ContrastEnhancement+BICUBIC (revert pre-session)
+    tag: sha-35b5025   # SLDs factor=8 partout
                   # détecte le nouvel image digest et re-run le Job.
 
   # ─── Frontend Angular SPA + nginx (AetherWX brand) ────────────────
