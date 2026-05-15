@@ -188,7 +188,7 @@ services:
   styleBootstrap:
     enabled: true
     image: ghcr.io/sylad/maritime-style-bootstrap
-    tag: sha-e522aca   # SLDs factor=12 + BILINEAR remis (stabilisation)
+    tag: sha-cee7546   # SLDs factor=12 + BILINEAR (dernier commit avec SLD changes)
                   # détecte le nouvel image digest et re-run le Job.
 
   # ─── Frontend Angular SPA + nginx (AetherWX brand) ────────────────
