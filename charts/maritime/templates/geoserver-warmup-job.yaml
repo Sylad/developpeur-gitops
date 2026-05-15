@@ -63,7 +63,7 @@ spec:
       serviceAccountName: geoserver-warmup
       containers:
         - name: warmup
-          image: bitnami/kubectl:1.32
+          image: curlimages/curl:8.10.1
           command:
             - sh
             - -c
@@ -82,9 +82,16 @@ spec:
               # que le Service (round-robin) — sinon une seule replica sur
               # deux est warmée statistiquement, et l'autre froide cause
               # "image disparait toutes les ~1min" quand le LB y route
-              # (Sylvain 2026-05-15).
-              POD_IPS=$(kubectl get pods -n maritime -l app=geoserver -o jsonpath='{range .items[*]}{.status.podIP}{"\n"}{end}')
-              echo "[warmup] target pods: $POD_IPS"
+              # (Sylvain 2026-05-15). Liste pods via K8s API direct (SA
+              # token monté en /var/run/secrets/kubernetes.io/serviceaccount/).
+              SA_DIR=/var/run/secrets/kubernetes.io/serviceaccount
+              TOKEN=$(cat $SA_DIR/token)
+              NS=$(cat $SA_DIR/namespace)
+              POD_IPS=$(curl -s --cacert $SA_DIR/ca.crt -H "Authorization: Bearer $TOKEN" \
+                "https://kubernetes.default.svc/api/v1/namespaces/$NS/pods?labelSelector=app%3Dgeoserver" \
+                | sed -n 's/.*"podIP": *"\([^"]*\)".*/\1/p' | sort -u)
+              echo "[warmup] target pods:"
+              echo "$POD_IPS"
 
               for IP in $POD_IPS; do
                 echo "[warmup] ===> $IP"
