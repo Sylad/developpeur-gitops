@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-a0ec8e0   # debug log unconditionnel top-of customizeReadParams
+    tag: sha-e2ff374   # debug log : dump tous les params reçus
     replicas: 1
     dataSize: 5Gi
     resources:
