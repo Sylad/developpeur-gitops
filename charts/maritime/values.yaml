@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-6a61fd0   # Modified Shepard's method (fix dot artifacts user report)
+    tag: sha-1eab083   # default raster-only SST/wave-hs + log diagnostic contour
     replicas: 1
     dataSize: 5Gi
     resources:
@@ -188,7 +188,7 @@ services:
   styleBootstrap:
     enabled: true
     image: ghcr.io/sylad/maritime-style-bootstrap
-    tag: sha-ecedd61   # SLDs sans BILINEAR (CoverageReadingTransformation suffit)
+    tag: sha-1eab083   # SLDs sst-only / wave-hs-only ajoutés (raster-only default)
                   # détecte le nouvel image digest et re-run le Job.
 
   # ─── Frontend Angular SPA + nginx (AetherWX brand) ────────────────
