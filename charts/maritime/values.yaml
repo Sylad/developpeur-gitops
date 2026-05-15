@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-ff134e0   # diagnostic INFO log + return null dans invertGridGeometry
+    tag: sha-90d8434   # return targetGridGeometry (fix NPE) + log diagnostic IDW
     replicas: 1
     dataSize: 5Gi
     resources:
