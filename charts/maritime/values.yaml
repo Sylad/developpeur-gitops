@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-90d8434   # return targetGridGeometry (fix NPE) + log diagnostic IDW
+    tag: sha-605b82f   # customizeReadParams force native + MAX_FACTOR=32
     replicas: 1
     dataSize: 5Gi
     resources:
@@ -188,7 +188,7 @@ services:
   styleBootstrap:
     enabled: true
     image: ghcr.io/sylad/maritime-style-bootstrap
-    tag: sha-ddb97cc   # VendorOption BILINEAR remis (interp du reader avant IDW)
+    tag: sha-605b82f   # SLDs factor=24 + retire BILINEAR (customizeReadParams natif)
                   # détecte le nouvel image digest et re-run le Job.
 
   # ─── Frontend Angular SPA + nginx (AetherWX brand) ────────────────
