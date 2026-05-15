@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-b87bee7   # ARCHITECTURAL rename : idwInterpolate / idwContour (no colon)
+    tag: sha-ecedd61   # cleanup : log FINE + retire BILINEAR (architectural propre)
     replicas: 1
     dataSize: 5Gi
     resources:
@@ -188,7 +188,7 @@ services:
   styleBootstrap:
     enabled: true
     image: ghcr.io/sylad/maritime-style-bootstrap
-    tag: sha-b87bee7   # SLDs renamed idwInterpolate / idwContour
+    tag: sha-ecedd61   # SLDs sans BILINEAR (CoverageReadingTransformation suffit)
                   # détecte le nouvel image digest et re-run le Job.
 
   # ─── Frontend Angular SPA + nginx (AetherWX brand) ────────────────
