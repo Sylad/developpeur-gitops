@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-e522aca   # stabilisé : factor=12 + BILINEAR (post investigation native)
+    tag: sha-27e3765   # ARCHITECTURAL : CoverageReadingTransformation (native preservation)
     replicas: 1
     dataSize: 5Gi
     resources:
