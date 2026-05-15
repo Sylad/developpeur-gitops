@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-53d2f57   # readNative force native getOriginalGridRange (fix stair-step)
+    tag: sha-3d4a487   # native GG + ThreadLocal cache (fix disposed reader + stair-step)
     replicas: 1
     dataSize: 5Gi
     resources:
