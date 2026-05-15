@@ -195,7 +195,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-cffe4e1   # time-bar -1j/+7j unifié + CQL_FILTER alerts/lightning/buoys ancré
+    tag: sha-2f29617   # auto-logout sur 401 /api/* (token Google expiré → redirect /auth/login)
     replicas: 1
     port: 80
     resources:
