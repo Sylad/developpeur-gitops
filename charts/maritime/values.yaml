@@ -101,7 +101,7 @@ services:
   buoyFetcher:
     enabled: true
     image: ghcr.io/sylad/maritime-buoy-fetcher
-    tag: v1
+    tag: sha-cffe4e1   # view v_buoy_observations_recent sans WHERE ts -6h + retention 1d
     replicas: 1
     resources:
       requests: { cpu: "50m",  memory: "128Mi" }
@@ -157,7 +157,7 @@ services:
   sstFetcher:
     enabled: true
     image: ghcr.io/sylad/maritime-sst-fetcher
-    tag: v2-prelim
+    tag: sha-cffe4e1   # cleanup_old_files default 30j→7j (alignement -1j/+7j)
     replicas: 1
     resources:
       requests: { cpu: "50m",  memory: "128Mi" }
@@ -195,7 +195,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-444b489   # vessels CQL_FILTER 15min anchored au time slider
+    tag: sha-cffe4e1   # time-bar -1j/+7j unifié + CQL_FILTER alerts/lightning/buoys ancré
     replicas: 1
     port: 80
     resources:
