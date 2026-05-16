@@ -195,7 +195,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-2f29617   # auto-logout sur 401 /api/* (token Google expiré → redirect /auth/login)
+    tag: sha-802adca   # revert hardcode -1j/+7j → pattern adaptive LAYER_PROFILES + LIVE strict
     replicas: 1
     port: 80
     resources:
