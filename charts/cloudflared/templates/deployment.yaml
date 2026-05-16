@@ -11,6 +11,18 @@ spec:
     metadata:
       labels: { app: cloudflared }
     spec:
+      # dnsConfig ndots:1 (Sylvain 2026-05-16) : le node Big-Blue a un
+      # DHCP corporate qui injecte `search csfr.campbellsci.com home` dans
+      # /etc/resolv.conf. Avec ndots:5 (k8s default), résoudre un FQDN
+      # comme maritime-frontend.maritime.svc.cluster.local traverse tous
+      # les search paths avant l'absolute → timeout 5s sur certains DNS
+      # externes → cloudflared retourne 502 sur les fresh requests post-
+      # rollout upstream. Cause des 502 répétés sur /geoserver/* après les
+      # deploys de ce matin (2026-05-16).
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
       containers:
         - name: cloudflared
           image: {{ .Values.image }}
