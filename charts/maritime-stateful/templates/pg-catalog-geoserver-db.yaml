@@ -1,0 +1,24 @@
+# DB `geoserver` dédiée dans le cluster pg-catalog existant.
+# Sprint refacto GS 2026-05-16 — sépare le catalog GS de la DB maritime
+# (qui contenait jusqu'ici un schema `geoserver` dans la DB `maritime`).
+#
+# Avec CNPG Database CRD on déclare la DB et le reconciler la crée /
+# update si besoin. Idempotent, gitops-friendly.
+#
+# https://cloudnative-pg.io/documentation/current/declarative_database_management/
+#
+# Note MVP : owner=maritime (réutilise le user existant). Plus tard
+# créer un user dédié `geoserver_app` avec son secret K8s. Pour le
+# sprint actuel le user maritime suffit (un seul consommateur de la DB).
+
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: geoserver
+spec:
+  name: geoserver
+  owner: maritime
+  cluster:
+    name: pg-catalog
+  # Encoding/locale par défaut héritent du template (UTF-8). Pour un
+  # catalog GS c'est OK — pas de besoin spécifique de collation.
