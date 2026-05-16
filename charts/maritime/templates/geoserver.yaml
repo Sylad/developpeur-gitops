@@ -61,14 +61,29 @@ spec:
           env:
             # ── Postgres connection (datasource jdbc/geoserver) ──────
             # Le CREATE DATABASE geoserver est géré par la Database CRD
-            # CNPG (déclaratif). Le wrapper bootstrap n'a donc PAS besoin
-            # de superuser — l'user `maritime` (owner de la DB geoserver
-            # via Database CRD) suffit pour CREATE TABLE tomcat_sessions
-            # et init JDBCConfig/JDBCStore. Pattern moindre privilège.
+            # CNPG (déclaratif). On utilise le user `maritime` (owner de
+            # la DB geoserver via Database CRD) — pattern moindre privilège.
+            #
+            # POSTGRES_USER / POSTGRES_PASSWORD aussi définis car l'entrypoint
+            # Kartoza fait son propre wait-for-postgres au boot qui requiert
+            # ces vars pour psql pg_isready. On pointe vers le même user
+            # maritime — pas besoin de superuser pour le wait.
             - name: POSTGRES_HOST
               value: pg-catalog-rw.{{ .Release.Namespace }}.svc
             - name: POSTGRES_PORT
               value: "5432"
+            - name: POSTGRES_DB
+              value: geoserver
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: pg-catalog-app
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pg-catalog-app
+                  key: password
             - name: GEOSERVER_DB_NAME
               value: geoserver
             - name: GEOSERVER_DB_USER
