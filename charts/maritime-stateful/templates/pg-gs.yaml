@@ -1,0 +1,36 @@
+# Cluster CNPG dédié pour GeoServer (promotion sandbox sprint 2026-05-16).
+#
+# Séparé de pg-catalog (preprod metadata) et pg-data (hypertables métier).
+# Image PostGIS car Kartoza/OSGeo GS exige spatial_ref_sys dans la DB cible
+# (sinon le wait-for-postgres boucle ou /opt/startup.sh templating Tomcat fail).
+#
+# Validé sandbox maritime-sandbox 2026-05-16 17h sur Big-Blue. Tables JDBC
+# créées automatiquement par les plugins JDBCConfig + JDBCStore au premier
+# boot via la datasource JNDI jdbc/postgres exposée par Tomcat.
+#
+# Note : CNPG génère automatiquement le Secret `pg-gs-app` avec username +
+# password pour le user `geoserver` (owner de la DB). Le pod GS référence
+# ce Secret via secretKeyRef.
+
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg-gs
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgis:16-3.4
+  storage:
+    size: 2Gi
+    storageClass: local-path
+  bootstrap:
+    initdb:
+      database: geoserver
+      owner: geoserver
+      postInitApplicationSQL:
+        - CREATE EXTENSION IF NOT EXISTS postgis
+        - CREATE EXTENSION IF NOT EXISTS postgis_raster
+  postgresql:
+    parameters:
+      shared_buffers: "128MB"
+      max_connections: "100"
+  enableSuperuserAccess: true
