@@ -1,0 +1,59 @@
+# SeaweedFS Services
+#
+# 1 headless Service `seaweedfs` (requis par StatefulSet pour DNS stable)
+# + 1 Service `seaweedfs-s3` exposant l'API S3 (port 8333) au reste du
+# namespace. Les autres ports (master/volume/filer) ne sont accessibles
+# qu'au pod lui-même par localhost — pas besoin d'exposer en Service.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs
+  labels:
+    app: seaweedfs
+spec:
+  clusterIP: None      # Headless — requis par StatefulSet pour stable DNS
+  selector:
+    app: seaweedfs
+  ports:
+    - name: master
+      port: {{ .Values.master.port }}
+    - name: volume
+      port: {{ .Values.volume.port }}
+    - name: filer
+      port: {{ .Values.filer.port }}
+    - name: s3
+      port: {{ .Values.s3.port }}
+---
+# Service S3 dédié — endpoint stable que les clients (GS GWC, etc.)
+# peuvent référencer comme `http://seaweedfs-s3.maritime.svc:8333`.
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs-s3
+  labels:
+    app: seaweedfs
+    component: s3
+spec:
+  selector:
+    app: seaweedfs
+  ports:
+    - name: s3
+      port: {{ .Values.s3.port }}
+      targetPort: s3
+---
+# Service Filer pour accès HTTP REST (debug, browse via curl).
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs-filer
+  labels:
+    app: seaweedfs
+    component: filer
+spec:
+  selector:
+    app: seaweedfs
+  ports:
+    - name: filer
+      port: {{ .Values.filer.port }}
+      targetPort: filer

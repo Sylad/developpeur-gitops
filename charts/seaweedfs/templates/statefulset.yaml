@@ -1,0 +1,100 @@
+# SeaweedFS all-in-one StatefulSet
+#
+# Le StatefulSet garantit un nom de pod stable (`seaweedfs-0`) pour que
+# les Services puissent y router et que les volumes filer/master gardent
+# leur identité au restart. Avec replicas=1 c'est l'équivalent d'un
+# Deployment + PVC, mais structuré pour pouvoir scaler plus tard sans
+# changer la topologie (Deployment + PVC RWO ne scale pas bien).
+#
+# Mode `weed server` : combine master + volume + filer + s3. Tous les
+# composants tournent dans le même binaire, écoutent sur des ports
+# différents (9333 master, 8080 volume, 8888 filer, 8333 s3). Plus
+# léger qu'un setup multi-binaire pour notre use case.
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: seaweedfs
+  labels:
+    app: seaweedfs
+spec:
+  serviceName: seaweedfs
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: seaweedfs
+  template:
+    metadata:
+      labels:
+        app: seaweedfs
+    spec:
+      containers:
+        - name: seaweedfs
+          image: {{ .Values.image }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /usr/bin/weed
+            - server
+            - -dir=/data
+            - -master.port={{ .Values.master.port }}
+            - -volume.port={{ .Values.volume.port }}
+            - -filer
+            - -filer.port={{ .Values.filer.port }}
+            - -s3
+            - -s3.port={{ .Values.s3.port }}
+            {{- if .Values.s3.adminAccessKey }}
+            - -s3.config=/config/s3.json
+            {{- end }}
+            # idx is stored separately to survive volume.dir wipe (rare)
+            - -volume.dir.idx=/data/idx
+            # Tells volume server its public address so filer can talk back.
+            # Avec un seul pod c'est localhost. Multi-pod plus tard nécessitera
+            # le service DNS name (seaweedfs-0.seaweedfs.maritime.svc).
+            - -ip=localhost
+          ports:
+            - name: master
+              containerPort: {{ .Values.master.port }}
+            - name: volume
+              containerPort: {{ .Values.volume.port }}
+            - name: filer
+              containerPort: {{ .Values.filer.port }}
+            - name: s3
+              containerPort: {{ .Values.s3.port }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            {{- if .Values.s3.adminAccessKey }}
+            - name: s3-config
+              mountPath: /config
+              readOnly: true
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          # L'endpoint /cluster/status est exposé par le master à 9333.
+          # Si master OK, on considère SeaweedFS prêt à servir.
+          livenessProbe:
+            httpGet:
+              path: /cluster/status
+              port: {{ .Values.master.port }}
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.s3.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        {{- if .Values.s3.adminAccessKey }}
+        - name: s3-config
+          secret:
+            secretName: seaweedfs-s3-config
+        {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: {{ .Values.storage.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.storage.size }}

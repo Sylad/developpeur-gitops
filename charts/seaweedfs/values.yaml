@@ -1,0 +1,55 @@
+# SeaweedFS all-in-one — sprint refacto GS 2026-05-16
+#
+# Mode "server" qui combine master + volume + filer + s3 dans un seul
+# binaire/pod. C'est la config recommandée pour un setup léger
+# (1 producteur ≤ qq Go de tiles GWC). Permet upgrade vers multi-node
+# plus tard (split master / volume / filer en Services séparés) sans
+# touche au client (l'API S3 reste sur le même endpoint).
+#
+# https://github.com/seaweedfs/seaweedfs/wiki/Server-Startup-Setup
+
+replicas: 1
+
+# Version chart-friendly. SeaweedFS publie une image officielle bien
+# maintenue sous chrislusf/seaweedfs (compte upstream).
+image: chrislusf/seaweedfs:3.71
+
+# S3 API endpoint (bucket access via boto3/aws-sdk/etc.)
+s3:
+  port: 8333
+  # Admin credentials. Pour MVP on garde vide → S3 anonyme accessible
+  # à tout le namespace. Ajouter access/secret keys plus tard quand on
+  # exposera SeaweedFS hors maritime ns.
+  adminAccessKey: ""
+  adminSecretKey: ""
+
+# Filer HTTP endpoint (browse via UI/CLI, debug)
+filer:
+  port: 8888
+
+# Master endpoint (interne, pas exposé externe)
+master:
+  port: 9333
+
+# Volume endpoint (interne)
+volume:
+  port: 8080
+
+# Storage backend pour les volume files. Longhorn RWO suffit puisque
+# 1 pod (multi-pod nécessiterait master HA + volume replication).
+storage:
+  size: 20Gi
+  storageClass: longhorn
+
+resources:
+  requests:
+    cpu: "50m"
+    memory: "128Mi"
+  limits:
+    cpu: "1"
+    memory: "1Gi"
+
+# Buckets à créer au boot. Pour l'instant juste gwc-tiles (cache
+# GeoServer GWC). On ajoutera d'autres si autres apps en ont besoin.
+buckets:
+  - gwc-tiles

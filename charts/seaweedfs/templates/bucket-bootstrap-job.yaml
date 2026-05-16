@@ -1,0 +1,50 @@
+{{- if .Values.buckets }}
+# Job post-install/post-upgrade qui crée les buckets S3 déclarés dans
+# values.buckets. Idempotent (mc mb --ignore-existing équivalent).
+#
+# Pourquoi un Job au lieu d'un initContainer dans le pod SeaweedFS ?
+# Parce que les buckets sont une concern app-level, pas infra. Le pod
+# SeaweedFS lui-même n'a pas besoin de savoir quels buckets existent —
+# c'est l'app cliente (GS GWC) qui les consomme. Découple bien.
+#
+# On utilise l'image AWS CLI officielle pointée sur l'endpoint SeaweedFS S3.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: seaweedfs-bucket-bootstrap
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: bucket-create
+          image: amazon/aws-cli:2.18.16
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              # Wait SeaweedFS S3 endpoint
+              until curl -sf "http://seaweedfs-s3.{{ .Release.Namespace }}.svc:{{ .Values.s3.port }}" -o /dev/null; do
+                echo "Waiting for SeaweedFS S3 endpoint…"
+                sleep 3
+              done
+              echo "SeaweedFS S3 ready."
+
+              export AWS_ACCESS_KEY_ID="{{ .Values.s3.adminAccessKey | default "any" }}"
+              export AWS_SECRET_ACCESS_KEY="{{ .Values.s3.adminSecretKey | default "any" }}"
+              export AWS_REGION="us-east-1"   # SeaweedFS ignore region but AWS CLI exige une valeur
+              ENDPOINT="http://seaweedfs-s3.{{ .Release.Namespace }}.svc:{{ .Values.s3.port }}"
+
+              {{- range .Values.buckets }}
+              echo "Ensuring bucket: {{ . }}"
+              aws --endpoint-url "$ENDPOINT" s3 mb "s3://{{ . }}" 2>&1 | grep -v 'already exists' || true
+              {{- end }}
+              echo "Bucket bootstrap complete."
+{{- end }}
