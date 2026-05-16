@@ -195,7 +195,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-802adca   # revert hardcode -1j/+7j → pattern adaptive LAYER_PROFILES + LIVE strict
+    tag: sha-3a63ada   # time-bar expandable V1 : bouton expand + sous-barres coverage par layer
     replicas: 1
     port: 80
     resources:
