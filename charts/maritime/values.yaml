@@ -188,7 +188,7 @@ services:
   styleBootstrap:
     enabled: true
     image: ghcr.io/sylad/maritime-style-bootstrap
-    tag: sha-35b5025   # SLDs factor=8 partout
+    tag: sha-34af560   # sst-direct/wind-direct/wave-direct + Bicubic Layer-level
                   # détecte le nouvel image digest et re-run le Job.
 
   # ─── Frontend Angular SPA + nginx (AetherWX brand) ────────────────
