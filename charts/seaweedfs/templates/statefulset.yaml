@@ -47,10 +47,12 @@ spec:
             {{- end }}
             # idx is stored separately to survive volume.dir wipe (rare)
             - -volume.dir.idx=/data/idx
-            # Tells volume server its public address so filer can talk back.
-            # Avec un seul pod c'est localhost. Multi-pod plus tard nécessitera
-            # le service DNS name (seaweedfs-0.seaweedfs.maritime.svc).
-            - -ip=localhost
+            # NB : pas de -ip= flag. SeaweedFS interprète -ip comme bind ET
+            # announce address ; passer "localhost" fait listen sur 127.0.0.1
+            # uniquement → kubelet ne peut pas joindre la liveness probe sur
+            # le pod IP. Default (0.0.0.0 bind + auto-resolve pour announce)
+            # marche en mode all-in-one mono-pod : tous les composants
+            # tournent dans le même process et se causent via in-process.
           ports:
             - name: master
               containerPort: {{ .Values.master.port }}
