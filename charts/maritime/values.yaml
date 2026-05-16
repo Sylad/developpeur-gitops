@@ -188,7 +188,7 @@ services:
   styleBootstrap:
     enabled: true
     image: ghcr.io/sylad/maritime-style-bootstrap
-    tag: sha-f8a4170   # skip vessel_tracks_daily + fallback raw-override non-bloquant
+    tag: sha-f40cfdc   # revert wind/wave default → IDW/only (rendu correct vs gris uniforme)
                   # détecte le nouvel image digest et re-run le Job.
 
   # ─── Frontend Angular SPA + nginx (AetherWX brand) ────────────────
