@@ -1,0 +1,127 @@
+{{- if .Values.services.geoserver.enabled }}
+# Script cluster-bootstrap.sh mounté via ConfigMap (sprint refacto archi
+# 2026-05-16). Le script est versionné dans le repo
+# maritime-atlas/geoserver/cluster/cluster-bootstrap.sh. Sa source est
+# COPIÉE ici par un Helm template pour rester dans le chart gitops
+# sans avoir à rebuild l'image GS à chaque tweak.
+#
+# Note : on garde cette copie en sync manuellement via le commit. Pas
+# d'auto-sync entre les 2 repos pour rester simple.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: geoserver-bootstrap
+data:
+  cluster-bootstrap.sh: |
+    #!/bin/bash
+    set -e
+
+    # ─── GeoServer cluster bootstrap — sprint refacto archi 2026-05-16 ───
+    # Source de vérité : maritime-atlas/geoserver/cluster/cluster-bootstrap.sh
+    # Synchronisé manuellement à chaque modif (commit dans les 2 repos).
+
+    GEOSERVER_DATA_DIR="${GEOSERVER_DATA_DIR:-/opt/geoserver_data}"
+    TOMCAT_CONTEXT_TPL="${TOMCAT_CONTEXT_TPL:-/usr/local/tomcat/conf/context.xml.tpl}"
+    TOMCAT_CONTEXT="${TOMCAT_CONTEXT:-/usr/local/tomcat/conf/context.xml}"
+
+    NODE_ID="${GEOSERVER_NODE_ID:-${HOSTNAME:-unknown}}"
+    echo "[cluster-bootstrap] node-id=${NODE_ID}"
+
+    # ── 1. CREATE DATABASE geoserver if missing ─────────────────────────
+    if [ -n "${GEOSERVER_DB_NAME:-}" ] && command -v psql >/dev/null 2>&1; then
+      echo "[cluster-bootstrap] ensure DB '${GEOSERVER_DB_NAME}' exists in pg-catalog…"
+      DB_EXISTS=$(PGPASSWORD="${POSTGRES_PASSWORD}" psql \
+        -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT:-5432}" \
+        -U "${POSTGRES_USER}" -d "${POSTGRES_DB:-postgres}" \
+        -tAc "SELECT 1 FROM pg_database WHERE datname='${GEOSERVER_DB_NAME}'" 2>/dev/null || echo "")
+      if [ "$DB_EXISTS" = "1" ]; then
+        echo "[cluster-bootstrap]   DB already exists, skipping CREATE"
+      else
+        PGPASSWORD="${POSTGRES_PASSWORD}" psql \
+          -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT:-5432}" \
+          -U "${POSTGRES_USER}" -d "${POSTGRES_DB:-postgres}" \
+          -c "CREATE DATABASE \"${GEOSERVER_DB_NAME}\";" \
+          2>&1 | sed 's/^/[cluster-bootstrap]   /' || \
+          echo "[cluster-bootstrap]   WARN: CREATE DATABASE failed (maybe race with another replica)"
+      fi
+    fi
+
+    # ── 2. envsubst sur context.xml.tpl → context.xml ──────────────────
+    if [ -f "${TOMCAT_CONTEXT_TPL}" ]; then
+      echo "[cluster-bootstrap] templating Tomcat context.xml from ${TOMCAT_CONTEXT_TPL}"
+      envsubst < "${TOMCAT_CONTEXT_TPL}" > "${TOMCAT_CONTEXT}"
+      echo "[cluster-bootstrap]   wrote ${TOMCAT_CONTEXT}"
+    fi
+
+    # ── 3. CREATE TABLE tomcat_sessions if missing ──────────────────────
+    if command -v psql >/dev/null 2>&1; then
+      echo "[cluster-bootstrap] ensure tomcat_sessions table in DB '${GEOSERVER_DB_NAME}'…"
+      PGPASSWORD="${GEOSERVER_DB_PASSWORD}" psql \
+        -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT:-5432}" \
+        -U "${GEOSERVER_DB_USER}" -d "${GEOSERVER_DB_NAME}" \
+        -v ON_ERROR_STOP=0 \
+        -c "CREATE TABLE IF NOT EXISTS tomcat_sessions (
+              session_id     VARCHAR(100) NOT NULL PRIMARY KEY,
+              valid_session  CHAR(1)      NOT NULL,
+              max_inactive   INT          NOT NULL,
+              last_access    BIGINT       NOT NULL,
+              app_name       VARCHAR(255),
+              session_data   BYTEA
+            );
+            CREATE INDEX IF NOT EXISTS idx_tomcat_sessions_app
+              ON tomcat_sessions(app_name);" \
+        2>&1 | sed 's/^/[cluster-bootstrap]   /' || \
+        echo "[cluster-bootstrap]   WARN: tomcat_sessions create failed (continuing)"
+    fi
+
+    # ── 4. JDBCConfig / JDBCStore properties — mode JNDI ───────────────
+    mkdir -p "${GEOSERVER_DATA_DIR}/jdbcconfig"
+    mkdir -p "${GEOSERVER_DATA_DIR}/jdbcstore"
+    mkdir -p "${GEOSERVER_DATA_DIR}/jdbcstore/scripts"
+
+    JDBC_INIT=true
+    JDBC_IMPORT=true
+    if command -v psql >/dev/null 2>&1; then
+      TABLE_EXISTS=$(PGPASSWORD="${GEOSERVER_DB_PASSWORD}" psql \
+        -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT:-5432}" \
+        -U "${GEOSERVER_DB_USER}" -d "${GEOSERVER_DB_NAME}" \
+        -tAc "SELECT to_regclass('object') IS NOT NULL AND to_regclass('resource') IS NOT NULL" 2>/dev/null || echo "f")
+      if [ "$TABLE_EXISTS" = "t" ]; then
+        echo "[cluster-bootstrap] JDBCConfig tables already initialized → initdb=false import=false"
+        JDBC_INIT=false
+        JDBC_IMPORT=false
+      fi
+    fi
+
+    cat > "${GEOSERVER_DATA_DIR}/jdbcconfig/jdbcconfig.properties" <<EOF
+    enabled=true
+    initdb=${JDBC_INIT}
+    import=${JDBC_IMPORT}
+    jndiName=java:comp/env/jdbc/geoserver
+    EOF
+
+    cat > "${GEOSERVER_DATA_DIR}/jdbcstore/jdbcstore.properties" <<EOF
+    enabled=true
+    initdb=${JDBC_INIT}
+    jndiName=java:comp/env/jdbc/geoserver
+    EOF
+
+    # ── 5. ControlFlow config — copie depuis ConfigMap (si présent) ────
+    if [ -f /cluster-config/controlflow.properties ]; then
+      cp /cluster-config/controlflow.properties "${GEOSERVER_DATA_DIR}/controlflow.properties"
+      echo "[cluster-bootstrap] control-flow config installed"
+    fi
+
+    echo "${NODE_ID}" > "${GEOSERVER_DATA_DIR}/.node-id-${NODE_ID}"
+    echo "[cluster-bootstrap] done, handing over to GeoServer (kartoza entrypoint)…"
+
+    # ── 6. Délègue à l'entrypoint kartoza ───────────────────────────────
+    if [ -x /scripts/start.sh ]; then
+      exec /scripts/start.sh "$@"
+    elif [ -x /opt/startup.sh ]; then
+      exec /opt/startup.sh "$@"
+    else
+      echo "[cluster-bootstrap] FATAL : no known GS entrypoint found"
+      exit 1
+    fi
+{{- end }}
