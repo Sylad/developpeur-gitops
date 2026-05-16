@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-c0e7ea1   # Phase 1 refacto archi : Kartoza + JNDI Tomcat + JDBC Sessions
+    tag: sha-c0fe28f   # control-flow ajusté 2 replicas (getmap 6→3, global 16→8)
     replicas: 2
     dataSize: 5Gi
     resources:

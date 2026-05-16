@@ -1,6 +1,0 @@
-apiVersion: v2
-name: seaweedfs
-description: SeaweedFS all-in-one (master+volume+filer+s3) — S3-compatible storage for GWC tile cache and other in-cluster S3 needs
-type: application
-version: 0.1.0
-appVersion: "3.71"
