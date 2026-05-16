@@ -79,6 +79,14 @@ spec:
                 secretKeyRef:
                   name: pg-catalog-app
                   key: username
+            # Kartoza convention : POSTGRES_PASS (pas POSTGRES_PASSWORD).
+            # On garde aussi POSTGRES_PASSWORD au cas où des plugins / scripts
+            # internes l'attendent. Doublon défensif.
+            - name: POSTGRES_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: pg-catalog-app
+                  key: password
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
