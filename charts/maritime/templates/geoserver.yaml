@@ -59,35 +59,16 @@ spec:
           ports:
             - containerPort: 8080
           env:
-            # ── Postgres connection (pour le wrapper bootstrap) ───────
-            # Ces vars sont lues par cluster-bootstrap.sh pour faire :
-            #  - CREATE DATABASE geoserver (psql en tant que postgres user)
-            #  - CREATE TABLE tomcat_sessions (psql en tant que GS user)
-            #  - envsubst sur context.xml.tpl (JNDI datasource)
+            # ── Postgres connection (datasource jdbc/geoserver) ──────
+            # Le CREATE DATABASE geoserver est géré par la Database CRD
+            # CNPG (déclaratif). Le wrapper bootstrap n'a donc PAS besoin
+            # de superuser — l'user `maritime` (owner de la DB geoserver
+            # via Database CRD) suffit pour CREATE TABLE tomcat_sessions
+            # et init JDBCConfig/JDBCStore. Pattern moindre privilège.
             - name: POSTGRES_HOST
               value: pg-catalog-rw.{{ .Release.Namespace }}.svc
             - name: POSTGRES_PORT
               value: "5432"
-            # Le user superuser pour CREATE DATABASE (DDL) — vient du
-            # Secret CNPG `pg-catalog-superuser` (créé automatiquement
-            # par le Cluster CRD avec enableSuperuserAccess=true).
-            - name: POSTGRES_USER
-              valueFrom:
-                secretKeyRef:
-                  name: pg-catalog-superuser
-                  key: username
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: pg-catalog-superuser
-                  key: password
-            - name: POSTGRES_DB
-              value: postgres   # DB par défaut pour exécuter CREATE DATABASE
-            # ── GS-specific DB connection (datasource jdbc/geoserver) ─
-            # Le user `maritime` existant a accès à la DB `geoserver`
-            # créée par la Database CRD CNPG (owner=maritime). MVP du
-            # sprint — un user `geoserver_app` dédié pourra être ajouté
-            # plus tard via un Job SQL.
             - name: GEOSERVER_DB_NAME
               value: geoserver
             - name: GEOSERVER_DB_USER
