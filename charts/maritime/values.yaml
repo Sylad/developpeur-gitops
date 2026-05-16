@@ -195,7 +195,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-76df727   # cap 5 layers actifs + scroll 3 lignes sous-barres time-bar
+    tag: sha-39a4154   # V2.1 cursor snap selon maître du temps
     replicas: 1
     port: 80
     resources:
