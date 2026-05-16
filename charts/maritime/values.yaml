@@ -195,7 +195,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-39a4154   # V2.1 cursor snap selon maître du temps
+    tag: sha-456d7a7   # SST kind 'obs' fix + V2.1 cursor snap
     replicas: 1
     port: 80
     resources:
