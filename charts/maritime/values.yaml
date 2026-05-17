@@ -174,11 +174,13 @@ services:
     dataSize: 5Gi
     resources:
       requests: { cpu: "500m", memory: "2Gi" }
-      limits:   { cpu: "2",    memory: "7Gi" }
-      # Sylvain 2026-05-14 : « si y a du rab, GS vit très bien avec 6Go ».
-      # Heap = 6g, limit pod = 7Gi (laisse 1 Gi pour metaspace + thread
-      # stacks + page cache + tmp). Big-Blue et Mini-Blue ont 32 Gi chacun
-      # donc largement de la marge.
+      limits:   { cpu: "2",    memory: "5Gi" }
+      # 2026-05-17 frugal Mini-Blue : la machine a en réalité 15Gi RAM
+      # (pas 32 comme noté à tort dans mémoire geoserver_jvm_tuning_opts).
+      # Heap = 4g, limit pod = 5Gi (laisse 1 Gi pour metaspace + threads
+      # + page cache). 2 replicas × 5Gi = 10Gi, laisse 5Gi pour pg-data
+      # + rmq + frontend + ais-decoder + alerts + autres pods.
+      # JAVA_OPTS aussi ramené à -Xmx4g (cf template geoserver.yaml).
 
   # ─── Style bootstrap (ArgoCD PostSync Job) ────────────────────────
   # Provisionne déclarativement les styles SLD custom (wind-speed-idw,
@@ -200,7 +202,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-e482a1d   # perf cascade : guard onTimeChange + gate WFS fetchers par visibility (- 60% requêtes parasites par toggle)
+    tag: sha-4e28d04   # SST contours layer séparée (SLD sst-contours-only) : 26s→1s, fix layers qui disparaissent
     replicas: 1
     port: 80
     resources:
