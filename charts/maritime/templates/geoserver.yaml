@@ -45,27 +45,17 @@ spec:
     spec:
       imagePullSecrets:
         - name: regcred
-      # SA dédié pour le discovery K8s natif d'Hazelcast 5.x (lecture
-      # Endpoints/Pods/Services dans le namespace courant). RBAC dans
-      # templates/geoserver-hz-rbac.yaml.
-      serviceAccountName: geoserver-hz
       containers:
         - name: geoserver
           image: "{{ .Values.services.geoserver.image }}:{{ .Values.services.geoserver.tag }}"
           imagePullPolicy: IfNotPresent
           # Override entrypoint OSGeo pour passer par notre wrapper qui setup
-          # tomcat_sessions + extract SQL JDBC scripts + properties JNDI
-          # + copy hazelcast.xml/cluster.properties dans cluster/,
+          # tomcat_sessions + extract SQL JDBC scripts + properties JNDI,
           # PUIS délègue à /opt/startup.sh (entrypoint OSGeo qui template
           # server.xml avec datasource JNDI jdbc/postgres et boot Tomcat).
           command: ["/bin/bash", "/scripts-extra/cluster-bootstrap.sh"]
           ports:
-            - name: http
-              containerPort: 8080
-            # Hazelcast peer-to-peer pour la synchro cache catalog
-            # cross-replica via le Service headless geoserver-hz.
-            - name: hazelcast
-              containerPort: 5701
+            - containerPort: 8080
           env:
             # ── Postgres connection (conventions OSGeo natives) ──────
             # IMPORTANT : OSGeo utilise POSTGRES_USERNAME (pas USER) qui est
@@ -89,15 +79,6 @@ spec:
               value: admin
             - name: GEOSERVER_ADMIN_PASSWORD
               value: geoserver
-            # ── Hazelcast K8s discovery (gs-hz-cluster) ───────────────
-            # Injecte le namespace courant pour le placeholder ${HZ_K8S_NAMESPACE}
-            # du hazelcast.xml. Le ConfigMap geoserver-hz-config est monté
-            # sur /scripts-extra/cluster/ et copié par le wrapper bootstrap
-            # vers ${GEOSERVER_DATA_DIR}/cluster/ avant boot Tomcat.
-            - name: HZ_K8S_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
             # ── JVM tuning (cf mémoire geoserver_jvm_tuning_opts) ─────
             - name: JAVA_OPTS
               value: >-
@@ -127,14 +108,6 @@ spec:
             - name: bootstrap-script
               mountPath: /scripts-extra
               readOnly: true
-            # ConfigMap hazelcast.xml + cluster.properties (cf geoserver-hz-configmap.yaml).
-            # Monté séparément de /scripts-extra (sinon overlay impossible).
-            # Le wrapper bootstrap script les copie dans
-            # ${GEOSERVER_DATA_DIR}/cluster/ pour que HzCluster.CONFIG_DIRECTORY
-            # les trouve au boot Spring.
-            - name: hz-config
-              mountPath: /etc/geoserver-hz
-              readOnly: true
             - name: coverage-data
               mountPath: /coverage
           resources:
@@ -160,9 +133,6 @@ spec:
           configMap:
             name: geoserver-bootstrap
             defaultMode: 0755
-        - name: hz-config
-          configMap:
-            name: geoserver-hz-config
         - name: coverage-data
           persistentVolumeClaim:
             claimName: maritime-coverage
