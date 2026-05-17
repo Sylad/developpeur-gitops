@@ -200,7 +200,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-456d7a7   # SST kind 'obs' fix + V2.1 cursor snap
+    tag: sha-b7e743b   # INTERPOLATION=bicubic dans params WMS (sst/wind/wave) — rendu lissé sans muter catalog GS
     replicas: 1
     port: 80
     resources:
