@@ -208,7 +208,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-253a2cc   # diag : log onTimeChange + stack trace (trouve d'où vient le drift currentTime dans le futur)
+    tag: sha-015d521   # ROOT CAUSE drift currentTime futur : snapToStep Math.round → Math.floor (jamais snap au-dessus de now)
     replicas: 1
     port: 80
     resources:
