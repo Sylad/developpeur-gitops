@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-5bbee45   # + gs-wps-core + gs-control-flow (fix CannotResolveClassException WPSInfoImpl)
+    tag: sha-a2b2c5b   # OSGeo + JNDI + JDBCConfig/Store (sans wps/control-flow — deps manquantes Maven, catalog cleané de WPSInfoImpl orphelin)
     replicas: 2
     dataSize: 5Gi
     resources:
