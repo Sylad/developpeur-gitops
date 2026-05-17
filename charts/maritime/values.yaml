@@ -186,10 +186,15 @@ services:
   # post-sync sur chaque cluster → 2 clusters restent synchros sans
   # drift entre REST manuel sur l'un et oubli sur l'autre.
   styleBootstrap:
-    enabled: true
+    # Désactivé 2026-05-17 sprint refacto GS v3 — depuis l'archi JDBCConfig
+    # (catalog en DB pg-catalog/geoserver), les styles SLD sont stockés via
+    # JDBCStore directement en DB et ne nécessitent plus un Job PostSync
+    # qui les push via REST. Le Job avait atteint son backoffLimit et faisait
+    # péter le sync ArgoCD de l'app maritime. À supprimer définitivement du
+    # repo (chart maritime template + service maritime-atlas) en Phase E.
+    enabled: false
     image: ghcr.io/sylad/maritime-style-bootstrap
-    tag: sha-f40cfdc   # revert wind/wave default → IDW/only (rendu correct vs gris uniforme)
-                  # détecte le nouvel image digest et re-run le Job.
+    tag: sha-f40cfdc
 
   # ─── Frontend Angular SPA + nginx (AetherWX brand) ────────────────
   frontend:
