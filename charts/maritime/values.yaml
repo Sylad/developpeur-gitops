@@ -202,7 +202,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-4e28d04   # SST contours layer séparée (SLD sst-contours-only) : 26s→1s, fix layers qui disparaissent
+    tag: sha-1274c48   # fix : showSstContours triggere applyLayerVisibility (sinon sstContoursLayer reste invisible)
     replicas: 1
     port: 80
     resources:
