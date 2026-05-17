@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-c0fe28f   # control-flow ajusté 2 replicas (getmap 6→3, global 16→8)
+    tag: sha-a2b2c5b   # sprint refacto v3 : image OSGeo + JNDI native + JDBCConfig/Store + pg-jdbc (validé local Big-Blue 2026-05-17)
     replicas: 2
     dataSize: 5Gi
     resources:

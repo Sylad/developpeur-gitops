@@ -1,19 +1,24 @@
 {{- if .Values.services.geoserver.enabled }}
-# GeoServer — 1 replica preprod, PVC pour le data_dir, JDBCConfig pointe sur
-# pg-catalog (175 rows déjà migrés). Sticky session via cookie pour avoir
-# session persistence quand on passera à replicas > 1 (Phase prod).
+# ─── GeoServer — sprint refacto v3 (validé Big-Blue compose 2026-05-17) ──
+#
+# Migration pg-catalog DB `maritime` schema `geoserver` (= existant) avec :
+#  - Image custom sha-a2b2c5b (docker.osgeo.org/geoserver:2.28.3 + plugins
+#    JDBCConfig+JDBCStore depuis OSGeo Nexus + pg-jdbc driver + context.xml.tpl)
+#  - Conventions OSGeo natives via env vars : POSTGRES_USERNAME (pas USER),
+#    POSTGRES_JNDI_ENABLED=true → image template server.xml elle-même
+#  - ConfigMap geoserver-bootstrap monté sur /scripts-extra/ qui setup
+#    tomcat_sessions + extract SQL init JARs JDBC + write properties JNDI
+#  - Catalog reste dans pg-catalog (181 rows JDBCConfig préservées)
+#
+# Préalable Mini-Blue (1× post-deploy, idempotent) :
+#   ALTER USER maritime SET search_path TO geoserver, public;
+#   CREATE EXTENSION postgis;  -- dans DB maritime
+
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: geoserver-data
 spec:
-  # ReadWriteMany via Longhorn Share Manager (NFS sous-jacent). Permet à
-  # plusieurs replicas GS de mount la même PVC simultanément. Compromis
-  # accepté preprod 2026-05-15 : workspaces SLD files lus par toutes les
-  # replicas (style-bootstrap Job écrit, replicas read-only en pratique) ;
-  # GWC tile cache potentiellement en race condition sur le même tile en
-  # cours d'écriture (rare ; à isoler via S3 BlobStore SeaweedFS quand on
-  # passera à >2 replicas ou prod).
   accessModes: [ReadWriteMany]
   storageClassName: longhorn
   resources:
@@ -28,8 +33,6 @@ metadata:
 spec:
   replicas: {{ .Values.services.geoserver.replicas }}
   strategy:
-    # RollingUpdate compatible avec PVC RWX Longhorn : plusieurs pods
-    # peuvent mount la même PVC en parallèle pendant le rollout.
     type: RollingUpdate
     rollingUpdate:
       maxUnavailable: 0
@@ -42,97 +45,41 @@ spec:
     spec:
       imagePullSecrets:
         - name: regcred
-      initContainers:
-        # JDBCConfig credentials sync (Sylvain 2026-05-15).
-        # GeoServer JDBCConfig stocke username/password EN CLAIR dans le
-        # fichier /opt/geoserver_data/jdbcconfig/jdbcconfig.properties.
-        # Au boot, GS lit CE FICHIER ; les env vars GEOSERVER_JDBCCONFIG_*
-        # ne sont PAS prises en compte automatiquement. Si le secret CNPG
-        # pg-catalog-app est régénéré (boot pg pod, rotation operator, etc.),
-        # le fichier disque devient stale → FATAL: password authentication
-        # failed for user maritime au boot GS.
-        #
-        # Cet initContainer re-template le fichier à chaque pod start
-        # depuis les valeurs courantes du secret. Idempotent.
-        #
-        # Méthode : grep -v puis append (pas de sed regex, évite les soucis
-        # de caractères spéciaux dans le password).
-        - name: jdbcconfig-sync
-          image: busybox:1.36
-          command:
-            - sh
-            - -c
-            - |
-              set -eu
-              F=/opt/geoserver_data/jdbcconfig/jdbcconfig.properties
-              mkdir -p /opt/geoserver_data/jdbcconfig
-              # Toujours rewrite total : l'image upstream
-              # docker.osgeo.org/geoserver écrit un default file avec
-              # `enabled=false` + jdbcUrl localhost à son premier boot.
-              # Si on se contente de re-template les credentials, le rest
-              # reste à `enabled=false` → JDBCConfig disabled → Workspace
-              # maritime not found (PVC RWX migration 2026-05-15). On
-              # écrit la conf complète à chaque boot, idempotent.
-              echo "Writing $F from secret pg-catalog-app + values inline…"
-              cat > "$F" <<EOF
-              enabled=true
-              initdb=false
-              import=false
-              jdbcUrl=jdbc:postgresql://pg-catalog-rw.maritime.svc:5432/maritime?currentSchema=geoserver
-              driverClassName=org.postgresql.Driver
-              username=$JDBC_USER
-              password=$JDBC_PASS
-              pool.minIdle=1
-              pool.maxActive=10
-              pool.poolPreparedStatements=true
-              pool.maxOpenPreparedStatements=50
-              pool.testOnBorrow=true
-              pool.validationQuery=SELECT now()
-              EOF
-              echo "Done."
-          env:
-            - name: JDBC_USER
-              valueFrom:
-                secretKeyRef: { name: pg-catalog-app, key: username }
-            - name: JDBC_PASS
-              valueFrom:
-                secretKeyRef: { name: pg-catalog-app, key: password }
-          volumeMounts:
-            - name: data
-              mountPath: /opt/geoserver_data
       containers:
         - name: geoserver
           image: "{{ .Values.services.geoserver.image }}:{{ .Values.services.geoserver.tag }}"
           imagePullPolicy: IfNotPresent
+          # Override entrypoint OSGeo pour passer par notre wrapper qui setup
+          # tomcat_sessions + extract SQL JDBC scripts + properties JNDI,
+          # PUIS délègue à /opt/startup.sh (entrypoint OSGeo qui template
+          # server.xml avec datasource JNDI jdbc/postgres et boot Tomcat).
+          command: ["/bin/bash", "/scripts-extra/cluster-bootstrap.sh"]
           ports:
             - containerPort: 8080
           env:
+            # ── Postgres connection (conventions OSGeo natives) ──────
+            # IMPORTANT : OSGeo utilise POSTGRES_USERNAME (pas USER) qui est
+            # interprété par /opt/startup.sh pour template server.xml avec
+            # la datasource JNDI jdbc/postgres.
+            - name: POSTGRES_HOST
+              value: pg-catalog-rw.{{ .Release.Namespace }}.svc
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              value: maritime
+            - name: POSTGRES_USERNAME
+              valueFrom: { secretKeyRef: { name: pg-catalog-app, key: username } }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: pg-catalog-app, key: password } }
+            # Active la datasource JNDI native (sinon désactivée par défaut)
+            - name: POSTGRES_JNDI_ENABLED
+              value: "true"
+            # ── GS admin credentials ──────────────────────────────────
             - name: GEOSERVER_ADMIN_USER
               value: admin
             - name: GEOSERVER_ADMIN_PASSWORD
               value: geoserver
-            # JDBCConfig pointe sur pg-catalog (réplique exactement la config
-            # du NAS : currentSchema=geoserver, hôte = pg-catalog service).
-            - name: GEOSERVER_JDBCCONFIG_JDBC_URL
-              value: "jdbc:postgresql://pg-catalog-rw.maritime.svc:5432/maritime?currentSchema=geoserver"
-            - name: GEOSERVER_JDBCCONFIG_USER
-              valueFrom:
-                secretKeyRef: { name: pg-catalog-app, key: username }
-            - name: GEOSERVER_JDBCCONFIG_PASSWORD
-              valueFrom:
-                secretKeyRef: { name: pg-catalog-app, key: password }
-            # JVM tuned pour GeoServer (Sylvain 2026-05-14) :
-            # - Xmx6g : heap généreuse pour IDW + reproject + mosaic
-            # - G1GC : low-pause collector, stable sur long-running
-            # - MaxGCPauseMillis 200 : cible pauses GC raisonnables
-            # - StringDeduplication : économise heap sur les nombreuses
-            #   strings dupliquées (SLD, attribut layers, etc.)
-            # - HeapDump on OOM : capture pour post-mortem dans /tmp
-            # - ExitOnOutOfMemoryError : kill pod sur OOM → restart K8s
-            #   propre au lieu d'un zombie qui mange la RAM
-            # - forceXY : EPSG axis order stable (lon,lat) — connu pour
-            #   éviter les bugs de reproject silencieux
-            # - timezone UTC + encoding UTF-8 : explicites
+            # ── JVM tuning (cf mémoire geoserver_jvm_tuning_opts) ─────
             - name: JAVA_OPTS
               value: >-
                 -Xms512m -Xmx6g
@@ -147,16 +94,8 @@ spec:
                 -Dorg.geotools.referencing.forceXY=true
                 -Duser.timezone=UTC
                 -Dfile.encoding=UTF-8
-            # L'image GeoServer (Docker Hub officielle) injecte
-            # `EXTRA_JAVA_OPTS=-Xms256m -Xmx1g` via CATALINA_OPTS, qui
-            # se concatène APRÈS $JAVA_OPTS dans la commande JVM → le
-            # dernier -Xmx gagne et notre 6g est silencieusement écrasé
-            # à 1g. Diagnostiqué via heap dump 1.1 GB sur OOM (Sylvain
-            # 2026-05-15). On override pour matcher JAVA_OPTS.
             - name: EXTRA_JAVA_OPTS
               value: "-Xms512m -Xmx6g"
-            # Accélération native JAI (PNG/JPEG/TIFF) — encode jusqu'à
-            # 3-5× plus vite que le pure Java sur les rasters volumineux.
             - name: JAI_PNG_NATIVE_ACCELERATION
               value: "true"
             - name: JAI_JPEG_NATIVE_ACCELERATION
@@ -166,42 +105,22 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /opt/geoserver_data
-            # Control-Flow config injected via ConfigMap (subPath single-file
-            # overlay sur la PVC RWX). Changement = juste re-apply chart, pas
-            # de rebuild image. Le plugin GS le lit au startup.
-            - name: controlflow-config
-              mountPath: /opt/geoserver_data/controlflow.properties
-              subPath: controlflow.properties
-            # GWC tile cache : overlay emptyDir per-pod sur le subdir
-            # de la PVC RWX partagée. Évite la race condition sur les
-            # writes de tile entre les 2 replicas (chacun a son propre
-            # cache éphémère, recalcule sur miss). Compromis : 2× travail
-            # IDW si tile demandée d'abord côté replica A puis B. Acceptable
-            # preprod ; à remplacer par GWC S3 BlobStore SeaweedFS quand
-            # >2 replicas ou prod.
-            - name: gwc-cache
-              mountPath: /opt/geoserver_data/gwc
-            # Coverage rasters (GFS/AROME/ARPEGE/SST) écrits par les
-            # services weather-fetcher* et sst-fetcher. PVC RWX Longhorn.
+            - name: bootstrap-script
+              mountPath: /scripts-extra
+              readOnly: true
             - name: coverage-data
               mountPath: /coverage
           resources:
             {{- toYaml .Values.services.geoserver.resources | nindent 12 }}
           startupProbe:
             httpGet:
-              # /geoserver/web/ retourne 302 (redirect), /geoserver/web/index.html
-              # retourne 404, seul /geoserver/index.html retourne 200 direct.
-              # Connu de Sylvain au taff.
               path: /geoserver/index.html
               port: 8080
             initialDelaySeconds: 30
-            periodSeconds: 15
-            failureThreshold: 60   # 15s × 60 = 15 min, tomcat + Spring slow boot
+            periodSeconds: 10
+            failureThreshold: 60
           livenessProbe:
             httpGet:
-              # /geoserver/web/ retourne 302 (redirect), /geoserver/web/index.html
-              # retourne 404, seul /geoserver/index.html retourne 200 direct.
-              # Connu de Sylvain au taff.
               path: /geoserver/index.html
               port: 8080
             periodSeconds: 30
@@ -210,19 +129,14 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: geoserver-data
-        - name: controlflow-config
+        - name: bootstrap-script
           configMap:
-            name: geoserver-controlflow
-        # GWC tile cache local per-pod (emptyDir) — voir comment volumeMount.
-        - name: gwc-cache
-          emptyDir:
-            sizeLimit: 2Gi
+            name: geoserver-bootstrap
+            defaultMode: 0755
         - name: coverage-data
           persistentVolumeClaim:
             claimName: maritime-coverage
 ---
-# Service GeoServer — replace l'ancien stub que j'avais créé. Si le stub
-# existe encore, Helm le réconciliera (même nom = même Service).
 apiVersion: v1
 kind: Service
 metadata:

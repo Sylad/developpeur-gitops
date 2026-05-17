@@ -3,13 +3,18 @@
 # Pattern dual-DB (incident 2026-05-13) : 2 clusters PG distincts pour
 # isoler les workloads incompatibles. Voir K8S-MIGRATION-ROADMAP.md.
 
-# pg-catalog : tiny, GeoServer JDBCConfig + sessions Tomcat
+# pg-catalog : tiny, GeoServer JDBCConfig + JDBCStore + sessions Tomcat +
+# ImageMosaic JDBC index. Image PostGIS (vs PG standard) — requis depuis
+# sprint refacto GS 2026-05-17 :
+#  - OSGeo GS valide `public.spatial_ref_sys` au boot (PostGIS extension)
+#  - ImageMosaic JDBC stocke `the_geom:Polygon` qui exige PostGIS
+# CNPG rolling update préserve les data (les 181 rows JDBCConfig restent).
 pgCatalog:
   instances: 1
   storage:
     size: 1Gi
     storageClass: local-path
-  imageName: ghcr.io/cloudnative-pg/postgresql:16
+  imageName: ghcr.io/cloudnative-pg/postgis:16-3.4
 
 # pg-data : hypertables (Timescale defered) + PostGIS pour geography.
 pgData:
