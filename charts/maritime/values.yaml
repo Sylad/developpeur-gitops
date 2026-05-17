@@ -200,7 +200,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-1b7796f   # perf isolines : nearest neighbor quand contours ON (bicubic = double passage ras:Contour 20+s)
+    tag: sha-e482a1d   # perf cascade : guard onTimeChange + gate WFS fetchers par visibility (- 60% requêtes parasites par toggle)
     replicas: 1
     port: 80
     resources:
