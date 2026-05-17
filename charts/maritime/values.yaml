@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-a2b2c5b   # sprint refacto v3 : image OSGeo + JNDI native + JDBCConfig/Store + pg-jdbc (validé local Big-Blue 2026-05-17)
+    tag: sha-5bbee45   # + gs-wps-core + gs-control-flow (fix CannotResolveClassException WPSInfoImpl)
     replicas: 2
     dataSize: 5Gi
     resources:
