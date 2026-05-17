@@ -170,7 +170,13 @@ services:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
     tag: sha-a2b2c5b   # OSGeo + JNDI + JDBCConfig/Store (sans wps/control-flow — deps manquantes Maven, catalog cleané de WPSInfoImpl orphelin)
-    replicas: 2
+    # 2026-05-17 soir : scale-down à 1 replica après bug "layers disparaissent"
+    # (Sylvain "laisse qu'un réplicas, c'est lamentable, mais pour l'instant
+    # on gère que dalle"). Cause profonde = drift entre les 2 pods GS quand
+    # un pod subit GC pause / perd temporairement son cache catalog → 404
+    # intermittents → OL EncodingError → hide layer. 1 replica = pas de drift.
+    # À revoir quand hz-cluster baked + RBAC OK (mais pas ce week-end).
+    replicas: 1
     dataSize: 5Gi
     resources:
       requests: { cpu: "500m", memory: "2Gi" }
@@ -178,7 +184,7 @@ services:
       # 2026-05-17 frugal Mini-Blue : la machine a en réalité 15Gi RAM
       # (pas 32 comme noté à tort dans mémoire geoserver_jvm_tuning_opts).
       # Heap = 4g, limit pod = 5Gi (laisse 1 Gi pour metaspace + threads
-      # + page cache). 2 replicas × 5Gi = 10Gi, laisse 5Gi pour pg-data
+      # + page cache). 1 replica × 5Gi = 5Gi, laisse 10Gi pour pg-data
       # + rmq + frontend + ais-decoder + alerts + autres pods.
       # JAVA_OPTS aussi ramené à -Xmx4g (cf template geoserver.yaml).
 
