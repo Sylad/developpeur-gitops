@@ -208,7 +208,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-c67f182   # APEX 06 time-bar refacto : nav par validité master ⏪⏩, extrêmes ⏮⏭, NOW=closest validity, boot snap 30min
+    tag: sha-0eeef24   # APEX 07 fix : TIME = timestamp exact (drop range 30j) — chaque ⏪⏩ produit image WMS différente
     replicas: 1
     port: 80
     resources:
