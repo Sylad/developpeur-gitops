@@ -208,7 +208,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-1301316   # APEX 07 fix #2 : parseTimeDimension via DOMParser + strip maritime: → validityList correcte pour SST/wind/wave
+    tag: sha-2f262b5   # APEX 07 fix #3 : snap TIME à grille native par layer (24h SST / 6h forecast) → fix 502 timeout
     replicas: 1
     port: 80
     resources:
