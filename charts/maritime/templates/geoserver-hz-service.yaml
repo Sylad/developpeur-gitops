@@ -1,0 +1,27 @@
+{{- if .Values.services.geoserver.enabled }}
+# Service K8s headless ClusterIP pour la discovery Hazelcast cross-replica.
+# Hazelcast 5.x natif Kubernetes discovery (depuis <kubernetes> dans
+# hazelcast.xml) interroge l'API K8s pour lister les Endpoints de ce
+# Service, puis établit les connexions TCP/5701 entre pods.
+#
+# Headless (clusterIP: None) car on veut le DNS A-record qui résout
+# tous les pods individuellement, pas un IP virtuel load-balancé.
+# publishNotReadyAddresses=true pour permettre la formation du cluster
+# pendant le rolling (sinon le 1er pod ne trouve pas son peer).
+apiVersion: v1
+kind: Service
+metadata:
+  name: geoserver-hz
+  labels:
+    app: geoserver
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app: geoserver
+  ports:
+    - name: hazelcast
+      port: 5701
+      targetPort: 5701
+      protocol: TCP
+{{- end }}

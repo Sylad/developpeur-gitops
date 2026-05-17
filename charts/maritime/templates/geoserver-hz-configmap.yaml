@@ -1,0 +1,47 @@
+{{- if .Values.services.geoserver.enabled }}
+# ConfigMap qui contient hazelcast.xml + cluster.properties pour le module
+# gs-hz-cluster. Monté en /scripts-extra/cluster/ dans le pod GS, puis
+# le wrapper bootstrap script copie vers ${GEOSERVER_DATA_DIR}/cluster/
+# (path attendu par HzCluster.CONFIG_DIRECTORY).
+#
+# Source de vérité (synchro manuelle) :
+# maritime-atlas/geoserver/cluster/hazelcast.xml + cluster.properties
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: geoserver-hz-config
+data:
+  hazelcast.xml: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <hazelcast xmlns="http://www.hazelcast.com/schema/config"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://www.hazelcast.com/schema/config
+                                   https://hazelcast.com/schema/config/hazelcast-config-5.3.xsd">
+      <cluster-name>gsEventCluster</cluster-name>
+      <instance-name>gsEventCluster</instance-name>
+      <properties>
+        <property name="hazelcast.logging.type">log4j2</property>
+        <property name="hazelcast.shutdownhook.enabled">false</property>
+      </properties>
+      <network>
+        <port auto-increment="false">5701</port>
+        <join>
+          <multicast enabled="false"/>
+          <tcp-ip enabled="false"/>
+          <kubernetes enabled="true">
+            <service-name>geoserver-hz</service-name>
+            <namespace>${HZ_K8S_NAMESPACE}</namespace>
+            <resolve-not-ready-addresses>true</resolve-not-ready-addresses>
+          </kubernetes>
+        </join>
+        <interfaces enabled="false"/>
+      </network>
+    </hazelcast>
+  cluster.properties: |
+    enabled=true
+    sync_method=reload
+    sync_delay=5
+    acktimeout=2000
+    session_sharing=false
+    session_sticky=false
+{{- end }}

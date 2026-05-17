@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-a2b2c5b   # OSGeo + JNDI + JDBCConfig/Store (sans wps/control-flow — deps manquantes Maven, catalog cleané de WPSInfoImpl orphelin)
+    tag: sha-1225e3d   # + gs-hz-cluster baked from source (Hazelcast K8s discovery — fix cache drift cross-replica)
     replicas: 2
     dataSize: 5Gi
     resources:
