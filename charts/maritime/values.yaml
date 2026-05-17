@@ -208,7 +208,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-0eeef24   # APEX 07 fix : TIME = timestamp exact (drop range 30j) — chaque ⏪⏩ produit image WMS différente
+    tag: sha-1301316   # APEX 07 fix #2 : parseTimeDimension via DOMParser + strip maritime: → validityList correcte pour SST/wind/wave
     replicas: 1
     port: 80
     resources:
