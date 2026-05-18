@@ -208,7 +208,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-14accfa   # APEX 08 hotfix Step 04 : bypass user-away guard si firstTimeSeen → label time-bar matche WMS TIME (fix desync label/WMS)
+    tag: sha-813612d   # APEX 08 hotfix 2 : bind externalCurrentTime au slider en permanence → label suit currentTimeSig du parent (fix display desync)
     replicas: 1
     port: 80
     resources:
