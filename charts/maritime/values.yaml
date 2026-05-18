@@ -208,7 +208,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-8275ac5   # APEX 10 time-bar master-driven : disparition si pas de master WMS, ticks = validités réelles, click/drag snap nearest validity, LIVE follow-along polling 60s
+    tag: sha-44ae9f0   # APEX 11 UX : click logo collapse panel, ★ icone master du temps + drag-and-drop z-index dans time-bar étendue (persist localStorage)
     replicas: 1
     port: 80
     resources:
