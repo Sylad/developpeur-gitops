@@ -43,6 +43,13 @@ spec:
     metadata:
       labels: { app: geoserver }
     spec:
+      # 2026-05-18 (audit APEX 08 post-sprint) — reset explicite à `default`
+      # pour purger un éventuel `geoserver-hz` orphelin laissé par l'ancien
+      # sprint Hazelcast K8s discovery (cf. revert c559b5a). Sans cette ligne,
+      # ArgoCD applique le template mais ne touche pas au serviceAccountName
+      # déjà présent dans le Deployment cluster → pods bloqués à la création
+      # (FailedCreate "serviceaccount geoserver-hz not found").
+      serviceAccountName: default
       imagePullSecrets:
         - name: regcred
       containers:
