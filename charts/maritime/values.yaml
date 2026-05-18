@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-813612d   # 2026-05-18 rebuild Dockerfile complet : JDBCConfig + JDBCStore + WPS + Control-Flow + Hz-Cluster + IDW + pg-jdbc bake dans l'image (fix CannotResolveClassException WPSInfoImpl au boot)
+    tag: sha-d388817   # 2026-05-18 fix bundle ZIP : wps + control-flow via ZIP SourceForge (avec gt-xsd-wps + gt-process-* deps transitives). Avant : JAR seul → NoClassDefFoundError gt.wps.WPSConfiguration au boot
     # 2026-05-17 soir : scale-down à 1 replica après bug "layers disparaissent"
     # (Sylvain "laisse qu'un réplicas, c'est lamentable, mais pour l'instant
     # on gère que dalle"). Cause profonde = drift entre les 2 pods GS quand
