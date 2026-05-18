@@ -136,7 +136,7 @@ services:
   weatherFetcherArpege:
     enabled: true
     image: ghcr.io/sylad/maritime-weather-fetcher-arpege
-    tag: v1
+    tag: sha-9cdd957   # 2026-05-18 : endpoint OVH (object.data.gouv.fr/meteofrance-pnt cassé depuis 14/05)
     replicas: 1
     resources:
       requests: { cpu: "100m", memory: "256Mi" }
@@ -145,7 +145,7 @@ services:
   weatherFetcherArome:
     enabled: true
     image: ghcr.io/sylad/maritime-weather-fetcher-arome
-    tag: v1
+    tag: sha-9cdd957   # 2026-05-18 : endpoint OVH (idem ARPEGE)
     replicas: 1
     resources:
       requests: { cpu: "100m", memory: "256Mi" }

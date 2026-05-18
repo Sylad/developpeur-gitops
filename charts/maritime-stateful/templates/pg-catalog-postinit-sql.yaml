@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pg-catalog-postinit-sql
+  namespace: {{ .Release.Namespace }}
+data:
+  # 2026-05-18 (apex 09 wrap-up post-marathon) : exécuté UNE FOIS à l'init
+  # DB par l'app user `maritime` (cf bootstrap.initdb.postInitApplicationSQLRefs
+  # dans pg-catalog.yaml). Garantit que le schema `geoserver` est OWNED BY
+  # `maritime` → JDBCConfig créera ensuite ses tables avec maritime owner
+  # → plus jamais besoin de GRANT manuel (problème vécu 2026-05-18 marathon).
+  #
+  # Note : ce SQL ne se REJOUE PAS sur un cluster existant. Pour les clusters
+  # qui ont déjà un schema postgres-owned (Big-Blue/Mini-Blue actuels), il
+  # reste le GRANT one-shot manuel documenté dans memory marathon.
+  #
+  # Le search_path par défaut du user pointe vers geoserver → toutes les
+  # requêtes JDBCConfig trouvent leurs tables sans qualification explicite.
+  setup.sql: |
+    CREATE SCHEMA IF NOT EXISTS geoserver;
+    ALTER ROLE maritime SET search_path = geoserver, public;

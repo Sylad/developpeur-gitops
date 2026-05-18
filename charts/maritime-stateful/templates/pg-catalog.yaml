@@ -12,6 +12,17 @@ spec:
     initdb:
       database: maritime
       owner: maritime
+      # 2026-05-18 (apex 09 wrap-up) — schema geoserver pré-créé par maritime user
+      # avant que JDBCConfig init ses tables. Évite que postgres crée le schema
+      # (default owner = créateur) et qu'on doive GRANT manuellement après.
+      # ConfigMap pg-catalog-postinit-sql/setup.sql contient :
+      #   CREATE SCHEMA IF NOT EXISTS geoserver;
+      #   ALTER ROLE maritime SET search_path = geoserver, public;
+      # NE SE REJOUE PAS sur cluster existant (CNPG postInit = one-shot init).
+      postInitApplicationSQLRefs:
+        configMapRefs:
+          - name: pg-catalog-postinit-sql
+            key: setup.sql
   postgresql:
     parameters:
       # Tuning léger pour preprod
