@@ -208,7 +208,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-20f9e79   # 1 GetCaps couvre toutes layers WMS time-enabled (sst, wind, waves, windArrows, waveArrows, windParticles) — chaque rangée a ses ticks réels
+    tag: sha-36192d2   # fix bouton ★ : masque sur layers non master-eligibles (arrows/particles) + grossir labels rangées 0.85rem + drag handle dédié
     replicas: 1
     port: 80
     resources:
