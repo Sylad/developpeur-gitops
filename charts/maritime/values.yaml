@@ -208,7 +208,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-7f7b4ab   # fix loop infinie GetCapabilities (effect validityListPerLayer ne lit plus sliderConfig — fenêtre fixe ±168h)
+    tag: sha-20f9e79   # 1 GetCaps couvre toutes layers WMS time-enabled (sst, wind, waves, windArrows, waveArrows, windParticles) — chaque rangée a ses ticks réels
     replicas: 1
     port: 80
     resources:
