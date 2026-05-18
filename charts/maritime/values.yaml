@@ -208,7 +208,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-dd8efb8   # windContours + wavesContours layers dédiées (pattern SST cloné) — fix double IDW raster parasite
+    tag: sha-ea6dd99   # APEX 08 refacto time-bar global : validityListPerLayer + union + snap par source à validité réelle
     replicas: 1
     port: 80
     resources:
