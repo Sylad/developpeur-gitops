@@ -208,7 +208,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-f141504   # APEX 11+12 + fix vector segments couvrent toute la fenêtre slider (lightning/metar/etc. visibles même quand master = SST passé)
+    tag: sha-7f7b4ab   # fix loop infinie GetCapabilities (effect validityListPerLayer ne lit plus sliderConfig — fenêtre fixe ±168h)
     replicas: 1
     port: 80
     resources:
