@@ -208,7 +208,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-813612d   # APEX 08 hotfix 2 : bind externalCurrentTime au slider en permanence → label suit currentTimeSig du parent (fix display desync)
+    tag: sha-8275ac5   # APEX 10 time-bar master-driven : disparition si pas de master WMS, ticks = validités réelles, click/drag snap nearest validity, LIVE follow-along polling 60s
     replicas: 1
     port: 80
     resources:
