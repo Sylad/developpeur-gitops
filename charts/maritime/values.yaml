@@ -208,7 +208,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-ea6dd99   # APEX 08 refacto time-bar global : validityListPerLayer + union + snap par source à validité réelle
+    tag: sha-14accfa   # APEX 08 hotfix Step 04 : bypass user-away guard si firstTimeSeen → label time-bar matche WMS TIME (fix desync label/WMS)
     replicas: 1
     port: 80
     resources:
