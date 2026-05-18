@@ -169,7 +169,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/maritime-geoserver
-    tag: sha-a2b2c5b   # OSGeo + JNDI + JDBCConfig/Store (sans wps/control-flow — deps manquantes Maven, catalog cleané de WPSInfoImpl orphelin)
+    tag: sha-813612d   # 2026-05-18 rebuild Dockerfile complet : JDBCConfig + JDBCStore + WPS + Control-Flow + Hz-Cluster + IDW + pg-jdbc bake dans l'image (fix CannotResolveClassException WPSInfoImpl au boot)
     # 2026-05-17 soir : scale-down à 1 replica après bug "layers disparaissent"
     # (Sylvain "laisse qu'un réplicas, c'est lamentable, mais pour l'instant
     # on gère que dalle"). Cause profonde = drift entre les 2 pods GS quand
