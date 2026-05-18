@@ -89,16 +89,38 @@ data:
       -tAc "SELECT to_regclass('object') IS NOT NULL" 2>/dev/null || echo "f")
     [ "$TABLE_EXISTS" = "t" ] && JDBC_INIT=false
 
+    # 2026-05-18 (Sylvain) — bypass JNDI : on écrit les credentials JDBC
+    # DIRECT dans le .properties. La datasource JNDI jdbc/postgres que
+    # l'image OSGeo est censée templater (depuis POSTGRES_JNDI_ENABLED=true
+    # + env POSTGRES_*) ne marche pas → JDBCConfig fallback sur les
+    # defaults bundled (jdbcUrl=localhost:5432/gscatalog) → connexion
+    # échoue silencieusement → factory mode sans maritime workspace.
+    # Bug récurrent depuis le sprint refacto JDBCConfig (2026-05-16/17).
+    #
+    # Mode direct : driver pgjdbc + jdbcUrl avec ?currentSchema=geoserver,public
+    # pour cibler le schema GS dans la DB maritime. Le password en clair
+    # dans le fichier est moins propre que JNDI mais ça MARCHE.
     cat > "${GEOSERVER_DATA_DIR}/jdbcconfig/jdbcconfig.properties" <<EOF
     enabled=true
     initdb=${JDBC_INIT}
     import=${JDBC_INIT}
-    jndiName=java:comp/env/jdbc/postgres
+    driverClassName=org.postgresql.Driver
+    jdbcUrl=jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/${POSTGRES_DB}?currentSchema=geoserver,public
+    username=${POSTGRES_USERNAME}
+    password=${POSTGRES_PASSWORD}
+    pool.maxActive=10
+    pool.minIdle=4
+    pool.poolPreparedStatements=true
+    pool.testOnBorrow=true
+    pool.validationQuery=SELECT now()
     EOF
     cat > "${GEOSERVER_DATA_DIR}/jdbcstore/jdbcstore.properties" <<EOF
     enabled=true
     initdb=${JDBC_INIT}
-    jndiName=java:comp/env/jdbc/postgres
+    driverClassName=org.postgresql.Driver
+    jdbcUrl=jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/${POSTGRES_DB}?currentSchema=geoserver,public
+    username=${POSTGRES_USERNAME}
+    password=${POSTGRES_PASSWORD}
     EOF
 
     echo "[cluster-bootstrap] done, exec /opt/startup.sh"
