@@ -208,7 +208,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-181b5dc   # arrows + particles ajoutés à animatableLayers comme WMS time-enabled — toutes les rangées ont leur ★ fonctionnel
+    tag: sha-e030fc8   # APEX 16 : master du temps persisté dans layer-prefs-v1 (l'ordre user d'activation survit au reload)
     replicas: 1
     port: 80
     resources:
