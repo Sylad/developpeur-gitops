@@ -208,7 +208,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-506e0dc   # + cursor sous-barres + status RainViewer indispo (2026-05-19)
+    tag: sha-8b8f0f3   # + UX legend (cap5 inline + cats navires conditionnelles + REPLAY tooltip)
     replicas: 1
     port: 80
     resources:
