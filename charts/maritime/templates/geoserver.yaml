@@ -87,9 +87,12 @@ spec:
             - name: GEOSERVER_ADMIN_PASSWORD
               value: geoserver
             # ── JVM tuning (cf mémoire geoserver_jvm_tuning_opts) ─────
+            # 2026-05-19 — -Xmx lit `services.geoserver.heap` (single source
+            # of truth). Le pod limit.memory est calculé heap + 1Gi en bas.
+            # Impossible d'avoir un drift maintenant.
             - name: JAVA_OPTS
               value: >-
-                -Xms512m -Xmx6g
+                -Xms512m -Xmx{{ .Values.services.geoserver.heap }}
                 -XX:+UseG1GC
                 -XX:MaxGCPauseMillis=200
                 -XX:+ParallelRefProcEnabled
@@ -102,7 +105,7 @@ spec:
                 -Duser.timezone=UTC
                 -Dfile.encoding=UTF-8
             - name: EXTRA_JAVA_OPTS
-              value: "-Xms512m -Xmx6g"
+              value: "-Xms512m -Xmx{{ .Values.services.geoserver.heap }}"
             - name: JAI_PNG_NATIVE_ACCELERATION
               value: "true"
             - name: JAI_JPEG_NATIVE_ACCELERATION
@@ -118,7 +121,15 @@ spec:
             - name: coverage-data
               mountPath: /coverage
           resources:
-            {{- toYaml .Values.services.geoserver.resources | nindent 12 }}
+            requests:
+              {{- toYaml .Values.services.geoserver.resources.requests | nindent 14 }}
+            limits:
+              {{- toYaml .Values.services.geoserver.resources.limits | nindent 14 }}
+              # 2026-05-19 — limits.memory dérivé automatiquement de heap + 1Gi
+              # (marge off-heap pour metaspace + JAI native + threads). Garantit
+              # que K8s OOMKiller ne tue PAS le pod avant que la JVM ait
+              # vraiment dépassé son heap budget.
+              memory: {{ printf "%dGi" (add (.Values.services.geoserver.heap | trimSuffix "g" | int) 1) }}
           startupProbe:
             httpGet:
               path: /geoserver/index.html
