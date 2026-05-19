@@ -34,8 +34,18 @@ spec:
             - secretRef:
                 name: maritime-google-oauth
                 optional: true
+          volumeMounts:
+            # APEX Satellites (2026-05-19) : volume RWX partagé pour le sink
+            # file_save de l'orchestrator. Le frontend monte le même PVC en
+            # read-only et nginx sert /satellites/* depuis là.
+            - name: satellite-data
+              mountPath: /data/satellites
           resources:
             {{- toYaml .Values.services.api.resources | nindent 12 }}
+      volumes:
+        - name: satellite-data
+          persistentVolumeClaim:
+            claimName: maritime-satellites
 ---
 apiVersion: v1
 kind: Service
