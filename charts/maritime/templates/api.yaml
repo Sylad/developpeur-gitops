@@ -34,18 +34,11 @@ spec:
             - secretRef:
                 name: maritime-google-oauth
                 optional: true
-          volumeMounts:
-            # APEX Satellites (2026-05-19) : volume RWX partagé pour le sink
-            # file_save de l'orchestrator. Le frontend monte le même PVC en
-            # read-only et nginx sert /satellites/* depuis là.
-            - name: satellite-data
-              mountPath: /data/satellites
           resources:
             {{- toYaml .Values.services.api.resources | nindent 12 }}
-      volumes:
-        - name: satellite-data
-          persistentVolumeClaim:
-            claimName: maritime-satellites
+      # Phase 4 (2026-05-19) — api n'a plus besoin de PVC satellite-data :
+      # le sidecar grib-parser écrit les GeoTIFFs dans /coverage/sat-<product>/
+      # (PVC maritime-coverage déjà monté côté grib-parser).
 ---
 apiVersion: v1
 kind: Service

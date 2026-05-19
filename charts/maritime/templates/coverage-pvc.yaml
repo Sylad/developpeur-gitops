@@ -29,21 +29,8 @@ spec:
   resources:
     requests:
       storage: {{ .Values.coverage.windArrowsSize | default "2Gi" }}
----
-# 2026-05-19 APEX Satellites — volume RWX partagé entre maritime-api (writer
-# orchestrator file_save sink) et maritime-frontend (nginx read-only serve).
-# 1 image JPG/PNG par produit par jour, 7 produits → ~50 Mo/jour, retention
-# 30 jours = ~1.5 Gi. Default 5Gi confortable.
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: maritime-satellites
-  labels:
-    app.kubernetes.io/component: storage
-spec:
-  accessModes: [ReadWriteMany]
-  storageClassName: {{ .Values.coverage.storageClass | default "longhorn" }}
-  resources:
-    requests:
-      storage: {{ .Values.coverage.satellitesSize | default "5Gi" }}
 {{- end }}
+# Phase 4 (2026-05-19) — le PVC maritime-satellites a été retiré : les
+# GeoTIFFs satellites sont maintenant écrits dans /coverage/sat-<product>/
+# (PVC maritime-coverage existant) via grib-parser sidecar, et servis par
+# GeoServer ImageMosaic comme tous les autres rasters.

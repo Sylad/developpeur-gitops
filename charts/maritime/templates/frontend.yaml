@@ -27,20 +27,14 @@ spec:
             - name: wind-arrows-data
               mountPath: /usr/share/nginx/wind-arrows
               readOnly: true
-            # APEX Satellites (2026-05-19) : volume RW côté api, RO côté
-            # nginx qui sert /satellites/* depuis ce path.
-            - name: satellite-data
-              mountPath: /usr/share/nginx/satellites
-              readOnly: true
+            # Phase 4 (2026-05-19) — satellites passent par GeoServer maintenant,
+            # plus de mount /usr/share/nginx/satellites/.
           resources:
             {{- toYaml .Values.services.frontend.resources | nindent 12 }}
       volumes:
         - name: wind-arrows-data
           persistentVolumeClaim:
             claimName: maritime-wind-arrows
-        - name: satellite-data
-          persistentVolumeClaim:
-            claimName: maritime-satellites
 ---
 apiVersion: v1
 kind: Service
