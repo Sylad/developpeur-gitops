@@ -208,7 +208,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-913e25d   # APEX Satellites Phase 3 — ImageStatic local (2026-05-19)
+    tag: sha-486b279   # APEX Satellites Phase 3 — first-class layers (time-bar + cap5) 2026-05-19
     replicas: 1
     port: 80
     resources:
