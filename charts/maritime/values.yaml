@@ -208,7 +208,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-70e11c2   # + custom color picker swatches (2026-05-19)
+    tag: sha-02b527c   # + 12 swatches + HEX input + fix vector toggle fetch (2026-05-19)
     replicas: 1
     port: 80
     resources:
