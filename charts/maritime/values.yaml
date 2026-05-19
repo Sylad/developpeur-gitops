@@ -180,13 +180,17 @@ services:
     dataSize: 5Gi
     resources:
       requests: { cpu: "500m", memory: "2Gi" }
-      limits:   { cpu: "2",    memory: "5Gi" }
-      # 2026-05-17 frugal Mini-Blue : la machine a en réalité 15Gi RAM
-      # (pas 32 comme noté à tort dans mémoire geoserver_jvm_tuning_opts).
-      # Heap = 4g, limit pod = 5Gi (laisse 1 Gi pour metaspace + threads
-      # + page cache). 1 replica × 5Gi = 5Gi, laisse 10Gi pour pg-data
-      # + rmq + frontend + ais-decoder + alerts + autres pods.
-      # JAVA_OPTS aussi ramené à -Xmx4g (cf template geoserver.yaml).
+      limits:   { cpu: "2",    memory: "7Gi" }
+      # 2026-05-19 22h45 — bump limit 5Gi → 7Gi pour aligner sur Xmx=6g
+      # (qui était drift depuis longtemps, mémoire/comment disaient 4g mais
+      # réel déployé est 6g). 5 OOMKilled sur la journée car JVM allouait
+      # heap jusqu'à 6Gi alors que kernel OOMKiller tue le pod > 5Gi
+      # (heap + metaspace + JAI native + threads). 7Gi = 6Gi heap + 1Gi
+      # de marge off-heap.
+      # Mini-Blue 15Gi RAM total : 7Gi GS + 8Gi pour pg-data + rmq +
+      # frontend + ais-decoder + alerts + autres → marge OK.
+      # Note : Xmx=6g hardcodé dans template geoserver.yaml ligne 92+105
+      # (JAVA_OPTS + EXTRA_JAVA_OPTS), à laisser pour l'instant.
 
   # ─── Style bootstrap (ArgoCD PostSync Job) ────────────────────────
   # Provisionne déclarativement les styles SLD custom (wind-speed-idw,
