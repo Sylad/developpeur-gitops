@@ -26,31 +26,30 @@ metadata:
   namespace: {{ .Release.Namespace }}
 data:
   config.sh: |
-    #!/bin/bash
-    set -euo pipefail
+    #!/bin/sh
+    # POSIX sh compatible (curlimages/curl utilise BusyBox sh, pas bash) :
+    # pas d'array, juste un for ... in liste de strings.
+    set -eu
     GS_URL="${GS_URL:-http://geoserver:8080/geoserver}"
     GS_AUTH="${GS_USER:-admin}:${GS_PASSWORD:-geoserver}"
     log() { echo "[$(date -u -Iseconds)] $*"; }
 
     # Layers à configurer : 7 sat NASA + 3 sat EUMETSAT (cascade — n'existent
     # pas encore tant que le Job wms-cascade-bootstrap n'a pas réussi, mais
-    # PUT silencieux 404 → on tolère)
-    LAYERS=(
-      "maritime:sat-modis-true-color"
-      "maritime:sat-viirs-true-color"
-      "maritime:sat-modis-ir"
-      "maritime:sat-airs-air-temp"
-      "maritime:sat-modis-cloud-top"
-      "maritime:sat-modis-aerosol"
-      "maritime:sat-viirs-day-night"
-      "maritime:sat-eu-ir-rss"
-      "maritime:sat-global-ir-mtg"
-      "maritime:sat-eu-hrv-rgb"
-      "maritime:radar-dwd-de"
-      "maritime:radar-knmi-nl"
-    )
-
-    for layer in "${LAYERS[@]}"; do
+    # PUT silencieux 404 → on tolère).
+    for layer in \
+      "maritime:sat-modis-true-color" \
+      "maritime:sat-viirs-true-color" \
+      "maritime:sat-modis-ir" \
+      "maritime:sat-airs-air-temp" \
+      "maritime:sat-modis-cloud-top" \
+      "maritime:sat-modis-aerosol" \
+      "maritime:sat-viirs-day-night" \
+      "maritime:sat-eu-ir-rss" \
+      "maritime:sat-global-ir-mtg" \
+      "maritime:sat-eu-hrv-rgb" \
+      "maritime:radar-dwd-de" \
+      "maritime:radar-knmi-nl"; do
       log "→ GWC config $layer"
       # Vérifier si la layer existe côté GWC (sat cascade peuvent ne pas
       # encore être créés). Skip si 404.
