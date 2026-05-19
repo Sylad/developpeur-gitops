@@ -13,7 +13,7 @@ services:
     # undici fetch() qui timeoutait sur Alpine 3.23 musl libc en HTTPS
     # externe (USGS, METAR, hubeau-débits, etc.). https.request() marche
     # mais le code utilise fetch() partout → seul recours : base glibc.
-    tag: sha-f0caaa2   # APEX Satellites Phase 4 GeoServer-native (2026-05-19)
+    tag: sha-6e4f465   # Phase 4 + fix URL templating sidecar (2026-05-19)
     port: 3010
     replicas: 1
     resources:
