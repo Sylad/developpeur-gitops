@@ -208,7 +208,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-f0caaa2   # APEX Satellites Phase 4 — TileWMS GeoServer (2026-05-19)
+    tag: sha-34b8885   # Phase 4 + wire validities sat-* (2026-05-19)
     replicas: 1
     port: 80
     resources:
