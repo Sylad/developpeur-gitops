@@ -208,7 +208,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-34b8885   # Phase 4 + wire validities sat-* (2026-05-19)
+    tag: sha-82f2365   # + satellite RainViewer IR 10min + policy 7j past (2026-05-19)
     replicas: 1
     port: 80
     resources:
