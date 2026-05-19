@@ -208,7 +208,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-02b527c   # + 12 swatches + HEX input + fix vector toggle fetch (2026-05-19)
+    tag: sha-b7f78ef   # + defaults SST/vessels/tracks=false (fix bug "rien actif" silent ON)
     replicas: 1
     port: 80
     resources:
@@ -242,6 +242,14 @@ coverage:
 # Permet de respecter la règle "tout passe par GeoServer" pour ces layers
 # externes sans dupliquer le storage (cascade = proxy live).
 wmsCascadeBootstrap:
+  enabled: true
+
+# ─── GWC sat config (PostSync Job) ──────────────────────────────────
+# Active le cache GWC sur les layers satellite avec TTL 1h + regex filter
+# TIME pour cacher chaque jour scrubable. Évite le re-render à chaque
+# requête WMS (sat = data immutable une fois publié) tout en gardant un
+# recyclage proactif quand les granules sont supprimés via retention 7j.
+gwcSatConfig:
   enabled: true
 
 # ─── Contour SLD patch (PostSync Job) ───────────────────────────────

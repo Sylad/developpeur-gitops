@@ -1,0 +1,146 @@
+{{- if .Values.gwcSatConfig.enabled }}
+# Maritime — GWC config pour les layers satellite
+#
+# 2026-05-19 (Sylvain) : "il faut activer le cache gwc sur les layers sat,
+# quitte à ce que ça soit tuilé, autant utiliser le cache. avec un ttl de 1h
+# je pense ca évitera que l'on ai trop de tuiles concernant des granules qui
+# n'existe plus".
+#
+# Pourquoi :
+#  - Les sat layers ont une time-dim (7 validités J-7..J-1)
+#  - Sans regexParameterFilter sur TIME, GWC ne cache QUE le default time
+#    et bypass le cache pour les autres requêtes → chaque scrub = re-render
+#  - expireCache=0 (default) = cache infini → tiles obsolètes restent même
+#    quand le granule sous-jacent est supprimé par le retention cleanup (7j)
+#
+# Fix : pour les 7 sat NASA + (à venir) les 3 sat EUMETSAT cascade :
+#  - regexParameterFilter sur TIME (accepte tout format ISO date/datetime)
+#  - expireCache=3600 (1h) → recycle proactif
+#  - expireClients=3600 (idem côté browser)
+#
+# Idempotent : PUT XML écrase la config existante à chaque sync.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: maritime-gwc-sat-config-script
+  namespace: {{ .Release.Namespace }}
+data:
+  config.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    GS_URL="${GS_URL:-http://geoserver:8080/geoserver}"
+    GS_AUTH="${GS_USER:-admin}:${GS_PASSWORD:-geoserver}"
+    log() { echo "[$(date -u -Iseconds)] $*"; }
+
+    # Layers à configurer : 7 sat NASA + 3 sat EUMETSAT (cascade — n'existent
+    # pas encore tant que le Job wms-cascade-bootstrap n'a pas réussi, mais
+    # PUT silencieux 404 → on tolère)
+    LAYERS=(
+      "maritime:sat-modis-true-color"
+      "maritime:sat-viirs-true-color"
+      "maritime:sat-modis-ir"
+      "maritime:sat-airs-air-temp"
+      "maritime:sat-modis-cloud-top"
+      "maritime:sat-modis-aerosol"
+      "maritime:sat-viirs-day-night"
+      "maritime:sat-eu-ir-rss"
+      "maritime:sat-global-ir-mtg"
+      "maritime:sat-eu-hrv-rgb"
+      "maritime:radar-dwd-de"
+      "maritime:radar-knmi-nl"
+    )
+
+    for layer in "${LAYERS[@]}"; do
+      log "→ GWC config $layer"
+      # Vérifier si la layer existe côté GWC (sat cascade peuvent ne pas
+      # encore être créés). Skip si 404.
+      CODE=$(curl -sk -u "$GS_AUTH" -o /dev/null -w "%{http_code}" \
+        "$GS_URL/gwc/rest/layers/$layer.xml")
+      if [ "$CODE" != "200" ]; then
+        log "  skip (HTTP $CODE — layer absent ou GWC pas init)"
+        continue
+      fi
+      # PUT config : enable + 1h TTL + regex filter TIME
+      curl -sk -u "$GS_AUTH" -X PUT \
+        -H "Content-Type: application/xml" \
+        -d "<?xml version='1.0' encoding='UTF-8'?>
+<GeoServerLayer>
+  <enabled>true</enabled>
+  <name>$layer</name>
+  <mimeFormats>
+    <string>image/png</string>
+    <string>image/jpeg</string>
+  </mimeFormats>
+  <gridSubsets>
+    <gridSubset><gridSetName>EPSG:4326</gridSetName></gridSubset>
+    <gridSubset><gridSetName>EPSG:900913</gridSetName></gridSubset>
+  </gridSubsets>
+  <metaWidthHeight><int>4</int><int>4</int></metaWidthHeight>
+  <expireCache>3600</expireCache>
+  <expireClients>3600</expireClients>
+  <parameterFilters>
+    <styleParameterFilter>
+      <key>STYLES</key>
+      <defaultValue></defaultValue>
+    </styleParameterFilter>
+    <regexParameterFilter>
+      <key>TIME</key>
+      <defaultValue></defaultValue>
+      <regex>^\d{4}-\d{2}-\d{2}.*$</regex>
+    </regexParameterFilter>
+  </parameterFilters>
+  <gutter>0</gutter>
+</GeoServerLayer>" \
+        "$GS_URL/gwc/rest/layers/$layer.xml" \
+        -o /tmp/resp -w "  PUT %{http_code}\n"
+    done
+
+    log "→ GWC reload (truncate stale cache, force re-fetch)"
+    curl -sk -u "$GS_AUTH" -X POST "$GS_URL/gwc/rest/reload" \
+      -o /dev/null -w "  POST %{http_code}\n" || true
+
+    log "✓ done"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: maritime-gwc-sat-config
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+    # sync-wave 2 = après cascade WMS (wave 1) qui crée les layers
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  ttlSecondsAfterFinished: 600
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: maritime-gwc-sat-config
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: config
+          image: curlimages/curl:8.7.1
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "/scripts/config.sh"]
+          env:
+            - name: GS_URL
+              value: "http://geoserver:8080/geoserver"
+            - name: GS_USER
+              value: admin
+            - name: GS_PASSWORD
+              value: geoserver
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+          resources:
+            requests: { cpu: "50m",  memory: "32Mi" }
+            limits:   { cpu: "200m", memory: "128Mi" }
+      volumes:
+        - name: scripts
+          configMap:
+            name: maritime-gwc-sat-config-script
+            defaultMode: 0755
+{{- end }}
