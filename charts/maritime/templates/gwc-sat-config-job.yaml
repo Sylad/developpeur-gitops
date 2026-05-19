@@ -60,37 +60,12 @@ data:
         log "  skip (HTTP $CODE — layer absent ou GWC pas init)"
         continue
       fi
-      # PUT config : enable + 1h TTL + regex filter TIME
+      # PUT config : enable + 1h TTL + regex filter TIME. XML single-line
+      # pour rester dans le literal block YAML (indent ≥ 4 sinon parse fail).
+      XML="<?xml version='1.0' encoding='UTF-8'?><GeoServerLayer><enabled>true</enabled><name>${layer}</name><mimeFormats><string>image/png</string><string>image/jpeg</string></mimeFormats><gridSubsets><gridSubset><gridSetName>EPSG:4326</gridSetName></gridSubset><gridSubset><gridSetName>EPSG:900913</gridSetName></gridSubset></gridSubsets><metaWidthHeight><int>4</int><int>4</int></metaWidthHeight><expireCache>3600</expireCache><expireClients>3600</expireClients><parameterFilters><styleParameterFilter><key>STYLES</key><defaultValue></defaultValue></styleParameterFilter><regexParameterFilter><key>TIME</key><defaultValue></defaultValue><regex>^[0-9]{4}-[0-9]{2}-[0-9]{2}.*$</regex></regexParameterFilter></parameterFilters><gutter>0</gutter></GeoServerLayer>"
       curl -sk -u "$GS_AUTH" -X PUT \
         -H "Content-Type: application/xml" \
-        -d "<?xml version='1.0' encoding='UTF-8'?>
-<GeoServerLayer>
-  <enabled>true</enabled>
-  <name>$layer</name>
-  <mimeFormats>
-    <string>image/png</string>
-    <string>image/jpeg</string>
-  </mimeFormats>
-  <gridSubsets>
-    <gridSubset><gridSetName>EPSG:4326</gridSetName></gridSubset>
-    <gridSubset><gridSetName>EPSG:900913</gridSetName></gridSubset>
-  </gridSubsets>
-  <metaWidthHeight><int>4</int><int>4</int></metaWidthHeight>
-  <expireCache>3600</expireCache>
-  <expireClients>3600</expireClients>
-  <parameterFilters>
-    <styleParameterFilter>
-      <key>STYLES</key>
-      <defaultValue></defaultValue>
-    </styleParameterFilter>
-    <regexParameterFilter>
-      <key>TIME</key>
-      <defaultValue></defaultValue>
-      <regex>^\d{4}-\d{2}-\d{2}.*$</regex>
-    </regexParameterFilter>
-  </parameterFilters>
-  <gutter>0</gutter>
-</GeoServerLayer>" \
+        -d "$XML" \
         "$GS_URL/gwc/rest/layers/$layer.xml" \
         -o /tmp/resp -w "  PUT %{http_code}\n"
     done
