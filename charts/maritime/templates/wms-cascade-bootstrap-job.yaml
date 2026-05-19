@@ -1,0 +1,162 @@
+{{- if .Values.wmsCascadeBootstrap.enabled }}
+# Maritime — WMS Cascade Bootstrap
+#
+# Provisionne déclarativement les WMS stores cascade + leurs WMS layers
+# côté GeoServer pour les sources externes haute cadence : EUMETSAT View
+# Service (MSG/MTG sat IR temps réel), DWD radar Allemagne, KNMI radar
+# Pays-Bas. Tourne en ArgoCD PostSync — chaque sync re-vérifie la config
+# (idempotent : DELETE+POST clean re-set).
+#
+# Cascading WMS = notre GS proxie le WMS upstream, port la time-dim, et
+# expose `maritime:<name>` au frontend. Respecte la règle "tout passe par
+# GS" (Sylvain 2026-05-16). Pas de duplication de tiles côté nous — chaque
+# GetMap est forwardé à l'upstream avec son cache GWC en sortie.
+#
+# 2026-05-19 — bash+curl inline pour éviter une nouvelle image GHCR.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: maritime-wms-cascade-bootstrap-script
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+data:
+  bootstrap.sh: |
+    #!/bin/bash
+    # Idempotent : DELETE old + POST fresh. GS retourne 200/201/409 selon
+    # état → on tolère tout sauf 5xx.
+    set -e
+
+    GS_URL="${GS_URL:-http://geoserver:8080/geoserver}"
+    GS_AUTH="${GS_USER:-admin}:${GS_PASSWORD:-geoserver}"
+    WS="${GS_WORKSPACE:-maritime}"
+
+    log() { echo "[$(date -u -Iseconds)] $*"; }
+
+    create_wmsstore() {
+      local name="$1"
+      local capabilities_url="$2"
+      log "→ wmsstore $name"
+      # DELETE recurse (idempotent — supprime store + layers cascade liés)
+      curl -sk -u "$GS_AUTH" -X DELETE \
+        "$GS_URL/rest/workspaces/$WS/wmsstores/$name?recurse=true" \
+        -o /dev/null -w "  DELETE %{http_code}\n" || true
+      # POST fresh
+      curl -sk -u "$GS_AUTH" -X POST -H "Content-Type: application/xml" \
+        -d "<wmsStore>
+              <name>$name</name>
+              <type>WMS</type>
+              <enabled>true</enabled>
+              <workspace><name>$WS</name></workspace>
+              <capabilitiesURL>$capabilities_url</capabilitiesURL>
+              <maxConnections>6</maxConnections>
+              <readTimeout>60</readTimeout>
+              <connectTimeout>30</connectTimeout>
+            </wmsStore>" \
+        "$GS_URL/rest/workspaces/$WS/wmsstores" \
+        -o /tmp/resp -w "  POST %{http_code}\n"
+      head -c 200 /tmp/resp; echo
+    }
+
+    publish_cascade_layer() {
+      local store="$1"
+      local native_name="$2"   # e.g. msg_rss:ir039_nrt
+      local layer_name="$3"    # e.g. msg-rss-ir-eu (URL-safe + lowercase-dash)
+      local title="$4"
+      log "→ wmslayer cascade $WS:$layer_name (← $store:$native_name)"
+      # POST le wmslayer cascade
+      curl -sk -u "$GS_AUTH" -X POST -H "Content-Type: application/xml" \
+        -d "<wmsLayer>
+              <name>$layer_name</name>
+              <nativeName>$native_name</nativeName>
+              <title>$title</title>
+              <enabled>true</enabled>
+            </wmsLayer>" \
+        "$GS_URL/rest/workspaces/$WS/wmsstores/$store/wmslayers" \
+        -o /tmp/resp -w "  POST %{http_code}\n"
+      head -c 300 /tmp/resp; echo
+    }
+
+    # ─── 1. Stores cascade ─────────────────────────────────────────
+    create_wmsstore "eumetsat-view" \
+      "https://view.eumetsat.int/geoserver/ows?service=WMS&version=1.3.0&request=GetCapabilities"
+
+    create_wmsstore "dwd-maps" \
+      "https://maps.dwd.de/geoserver/ows?service=WMS&version=1.3.0&request=GetCapabilities"
+
+    create_wmsstore "knmi-geo" \
+      "https://geoservices.knmi.nl/wms?service=WMS&version=1.3.0&request=GetCapabilities&DATASET=RADAR"
+
+    # ─── 2. Layers cascade publiés sous maritime:* ──────────────────
+    # Satellites EUMETSAT
+    publish_cascade_layer "eumetsat-view" "msg_rss:ir039_nrt" \
+      "sat-eu-ir-rss" \
+      "Sat IR Europe Rapid Scan 5min (MSG SEVIRI 3.9μm)"
+
+    publish_cascade_layer "eumetsat-view" "mtg_fd:ir105_hrfi" \
+      "sat-global-ir-mtg" \
+      "Sat IR global 10min (MTG FCI 10.5μm)"
+
+    publish_cascade_layer "eumetsat-view" "msg_fes:rgb_eview" \
+      "sat-eu-hrv-rgb" \
+      "Sat HRV RGB Europe 15min (MSG SEVIRI visible day)"
+
+    # Radars
+    publish_cascade_layer "dwd-maps" "dwd:Radar_rv_product_1x1km_ger" \
+      "radar-dwd-de" \
+      "Radar Allemagne 1km 5min (DWD)"
+
+    publish_cascade_layer "knmi-geo" "RAD_NL25_PCP_CM" \
+      "radar-knmi-nl" \
+      "Radar Pays-Bas 5min (KNMI)"
+
+    # ─── 3. Reload GS pour invalider les caches catalog ────────────
+    log "→ reload GS"
+    curl -sk -u "$GS_AUTH" -X POST "$GS_URL/rest/reload" -o /dev/null -w "  POST reload %{http_code}\n"
+
+    log "✓ done"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: maritime-wms-cascade-bootstrap
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: maritime-wms-cascade-bootstrap
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: bootstrap
+          image: curlimages/curl:8.7.1
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "/scripts/bootstrap.sh"]
+          env:
+            - name: GS_URL
+              value: "http://geoserver:8080/geoserver"
+            - name: GS_USER
+              value: admin
+            - name: GS_PASSWORD
+              value: geoserver
+            - name: GS_WORKSPACE
+              value: maritime
+          volumeMounts:
+            - name: script
+              mountPath: /scripts
+          resources:
+            requests: { cpu: "50m",  memory: "32Mi" }
+            limits:   { cpu: "200m", memory: "128Mi" }
+      volumes:
+        - name: script
+          configMap:
+            name: maritime-wms-cascade-bootstrap-script
+            defaultMode: 0755
+{{- end }}

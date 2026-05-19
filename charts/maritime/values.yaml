@@ -235,6 +235,15 @@ coverage:
   coverageSize: 10Gi
   windArrowsSize: 2Gi
 
+# ─── WMS Cascade Bootstrap (PostSync Job) ───────────────────────────
+# Provisionne les wmsstores + wmslayers cascade pour les sources externes
+# haute cadence : EUMETSAT View (sat IR Europe + global), DWD radar, KNMI
+# radar. Tourne après chaque sync ArgoCD (idempotent DELETE + POST).
+# Permet de respecter la règle "tout passe par GeoServer" pour ces layers
+# externes sans dupliquer le storage (cascade = proxy live).
+wmsCascadeBootstrap:
+  enabled: true
+
 # ─── Retention cleanup CronJob (-1j/+7j) ────────────────────────────
 # TimescaleDB n'est pas installée sur ce cluster (add_retention_policy
 # stub no-op), donc on fait le cleanup via un CronJob k8s quotidien à
