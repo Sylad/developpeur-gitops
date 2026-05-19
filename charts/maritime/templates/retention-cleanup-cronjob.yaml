@@ -44,7 +44,12 @@ spec:
                     DELETE FROM alerts WHERE ts < now() - INTERVAL '1 day';
                     DELETE FROM buoy_observations WHERE ts < now() - INTERVAL '1 day';
                     DELETE FROM vessels WHERE last_seen < now() - INTERVAL '1 day';
-                    DELETE FROM vessel_tracks_daily WHERE day < CURRENT_DATE - INTERVAL '7 days';
+                    DELETE FROM vessel_tracks_daily WHERE day < CURRENT_DATE - INTERVAL '1 day';
+                    DELETE FROM metar_observations WHERE ts < now() - INTERVAL '1 day';
+                    DELETE FROM hubeau_observations WHERE ts < now() - INTERVAL '1 day';
+                    DELETE FROM hubeau_piezo WHERE ts < now() - INTERVAL '1 day';
+                    DELETE FROM earthquakes WHERE ts < now() - INTERVAL '1 day';
+                    DELETE FROM firms_observations WHERE ts < now() - INTERVAL '1 day';
                     VACUUM (ANALYZE) vessel_positions;
                     VACUUM (ANALYZE) lightning_strikes;
                     VACUUM (ANALYZE) alerts;
@@ -65,4 +70,52 @@ spec:
               resources:
                 requests: { cpu: "50m",  memory: "64Mi" }
                 limits:   { cpu: "500m", memory: "256Mi" }
+            # ─── 2026-05-19 — cleanup fichiers /coverage selon politique data layer ───
+            # Obs (sst-daily, sat-*) : delete fichiers > 1 jour mtime
+            # Forecast (wind*, wave-*) : delete fichiers dont valid_time (extraite
+            #   du nom YYYYMMDDTHHMMSSZ) est < J-1 OU > J+7. Géré par les fetchers
+            #   en autonomie pour wind/wave (WEATHER_RETENTION_DAYS=7). Cette tâche
+            #   couvre les rasters Sat (1j) et un filet de sécurité.
+            - name: coverage-cleanup
+              image: alpine:3.20
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  echo "[coverage-cleanup] $(date -Iseconds) start"
+                  # Obs rasters : 1 jour de retention
+                  for d in /coverage/sat-* /coverage/sst-daily; do
+                    [ -d "$d" ] || continue
+                    find "$d" -maxdepth 1 -name "*.tif" -mtime +1 -print -delete || true
+                  done
+                  # Forecast rasters : retention 1j past + 7j future basée sur
+                  # le timestamp dans le nom de fichier (YYYYMMDDTHHMMSSZ).
+                  # Algo : extract YYYYMMDD, compare à J-1 et J+7.
+                  PAST=$(date -u -d '1 day ago' +%Y%m%d)
+                  FUTURE=$(date -u -d '7 days' +%Y%m%d)
+                  for d in /coverage/wind-speed /coverage/wind-speed-arpege /coverage/wind-speed-arome /coverage/wind-speed-gfs /coverage/wave-hs /coverage/wave-dir; do
+                    [ -d "$d" ] || continue
+                    for f in "$d"/*.tif; do
+                      [ -f "$f" ] || continue
+                      # Extract YYYYMMDD du basename via sed
+                      ts=$(basename "$f" | sed -nE 's/.*_([0-9]{8})T[0-9]{6}Z\.tif$/\1/p')
+                      [ -z "$ts" ] && continue
+                      if [ "$ts" \< "$PAST" ] || [ "$ts" \> "$FUTURE" ]; then
+                        echo "delete $f (ts=$ts, past=$PAST, future=$FUTURE)"
+                        rm -f "$f"
+                      fi
+                    done
+                  done
+                  echo "[coverage-cleanup] $(date -Iseconds) done"
+              volumeMounts:
+                - name: coverage-data
+                  mountPath: /coverage
+              resources:
+                requests: { cpu: "10m",  memory: "16Mi" }
+                limits:   { cpu: "200m", memory: "64Mi" }
+          volumes:
+            - name: coverage-data
+              persistentVolumeClaim:
+                claimName: maritime-coverage
 {{- end }}
