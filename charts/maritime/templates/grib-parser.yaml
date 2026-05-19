@@ -20,8 +20,19 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8500
+          volumeMounts:
+            # 2026-05-19 APEX Satellites Phase 4 — grib-parser doit pouvoir
+            # écrire les GeoTIFFs dans le volume partagé avec GeoServer.
+            # Bug latent jamais déclenché avant : weather-orchestrator-gfs-wind
+            # (le seul autre user) était enabled=false dans le seed.
+            - name: coverage-data
+              mountPath: /coverage
           resources:
             {{- toYaml .Values.services.gribParser.resources | nindent 12 }}
+      volumes:
+        - name: coverage-data
+          persistentVolumeClaim:
+            claimName: maritime-coverage
 ---
 apiVersion: v1
 kind: Service
