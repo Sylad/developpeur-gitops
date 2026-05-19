@@ -244,6 +244,13 @@ coverage:
 wmsCascadeBootstrap:
   enabled: true
 
+# ─── Contour SLD patch (PostSync Job) ───────────────────────────────
+# Patche les SLDs *-contours-only pour qu'ils lisent ${env('stroke','#ffffff')}
+# au lieu d'une couleur hardcodée. Fix bug "color picker isolignes sans effet"
+# 2026-05-19. Idempotent (PUT ?raw=true).
+contourSldPatch:
+  enabled: true
+
 # ─── Retention cleanup CronJob (-1j/+7j) ────────────────────────────
 # TimescaleDB n'est pas installée sur ce cluster (add_retention_policy
 # stub no-op), donc on fait le cleanup via un CronJob k8s quotidien à

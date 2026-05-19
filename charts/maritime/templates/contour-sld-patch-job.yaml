@@ -1,0 +1,321 @@
+{{- if .Values.contourSldPatch.enabled }}
+# Maritime — Patch SLDs contours-only pour supporter ${env('stroke','#ffffff')}
+#
+# Bug 2026-05-19 : color picker isolignes "sans effet". Cause = les SLDs
+# sst-contours-only / wind-speed-contours-only / wave-hs-contours-only ont
+# <sld:CssParameter name="stroke">#ffffff</sld:CssParameter> HARDCODED.
+# Le frontend envoie env=stroke:#HEX dans la requête WMS mais le SLD
+# n'utilisant pas env() ignore complètement la valeur.
+#
+# Fix : replacer la valeur hardcodée par <ogc:Function name="env"> qui lit
+# env('stroke','#ffffff') et applique la couleur user-picker.
+#
+# Idempotent : PUT ?raw=true override le SLD body à chaque sync ArgoCD.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: maritime-contour-sld-patch
+  namespace: {{ .Release.Namespace }}
+data:
+  sst-contours-only.sld: |
+    <?xml version="1.0" encoding="UTF-8"?><sld:StyledLayerDescriptor xmlns:sld="http://www.opengis.net/sld" xmlns="http://www.opengis.net/sld" xmlns:gml="http://www.opengis.net/gml" xmlns:ogc="http://www.opengis.net/ogc" version="1.0.0">
+      <sld:NamedLayer>
+        <sld:Name>sst-contours-only</sld:Name>
+        <sld:UserStyle>
+          <sld:Name>sst-contours-only</sld:Name>
+          <sld:Title>SST isolignes (ras:Contour standard, sans IDW)</sld:Title>
+          <sld:FeatureTypeStyle>
+            <sld:Name>contours</sld:Name>
+            <sld:Transformation>
+              <ogc:Function name="ras:Contour">
+                <ogc:Function name="parameter">
+                  <ogc:Literal>data</ogc:Literal>
+                </ogc:Function>
+                <ogc:Function name="parameter">
+                  <ogc:Literal>interval</ogc:Literal>
+                  <ogc:Function name="env">
+                    <ogc:Literal>contourInterval</ogc:Literal>
+                    <ogc:Literal>2.0</ogc:Literal>
+                  </ogc:Function>
+                </ogc:Function>
+                <ogc:Function name="parameter">
+                  <ogc:Literal>simplify</ogc:Literal>
+                  <ogc:Literal>true</ogc:Literal>
+                </ogc:Function>
+                <ogc:Function name="parameter">
+                  <ogc:Literal>smooth</ogc:Literal>
+                  <ogc:Literal>true</ogc:Literal>
+                </ogc:Function>
+              </ogc:Function>
+            </sld:Transformation>
+            <sld:Rule>
+              <sld:LineSymbolizer>
+                <sld:Stroke>
+                  <sld:CssParameter name="stroke"><ogc:Function name="env"><ogc:Literal>stroke</ogc:Literal><ogc:Literal>#ffffff</ogc:Literal></ogc:Function></sld:CssParameter>
+                  <sld:CssParameter name="stroke-opacity">0.55</sld:CssParameter>
+                  <sld:CssParameter name="stroke-width">0.6</sld:CssParameter>
+                </sld:Stroke>
+              </sld:LineSymbolizer>
+              <sld:TextSymbolizer>
+                <sld:Label>
+                  <ogc:PropertyName>value</ogc:PropertyName>
+                </sld:Label>
+                <sld:Font>
+                  <sld:CssParameter name="font-family">Inter, sans-serif</sld:CssParameter>
+                  <sld:CssParameter name="font-size">10</sld:CssParameter>
+                  <sld:CssParameter name="font-style">normal</sld:CssParameter>
+                  <sld:CssParameter name="font-weight">600</sld:CssParameter>
+                </sld:Font>
+                <sld:LabelPlacement>
+                  <sld:LinePlacement>
+                    <sld:PerpendicularOffset>0.0</sld:PerpendicularOffset>
+                  </sld:LinePlacement>
+                </sld:LabelPlacement>
+                <sld:Halo>
+                  <sld:Radius>1.5</sld:Radius>
+                  <sld:Fill>
+                    <sld:CssParameter name="fill">#0a0e1a</sld:CssParameter>
+                    <sld:CssParameter name="fill-opacity">0.7</sld:CssParameter>
+                  </sld:Fill>
+                </sld:Halo>
+                <sld:Fill>
+                  <sld:CssParameter name="fill">#ffffff</sld:CssParameter>
+                </sld:Fill>
+                <sld:VendorOption name="followLine">true</sld:VendorOption>
+                <sld:VendorOption name="repeat">120</sld:VendorOption>
+                <sld:VendorOption name="maxAngleDelta">35</sld:VendorOption>
+              </sld:TextSymbolizer>
+            </sld:Rule>
+          </sld:FeatureTypeStyle>
+        </sld:UserStyle>
+      </sld:NamedLayer>
+    </sld:StyledLayerDescriptor>
+    
+  wind-speed-contours-only.sld: |
+    <?xml version="1.0" encoding="UTF-8"?><sld:StyledLayerDescriptor xmlns:sld="http://www.opengis.net/sld" xmlns="http://www.opengis.net/sld" xmlns:gml="http://www.opengis.net/gml" xmlns:ogc="http://www.opengis.net/ogc" version="1.0.0">
+      <sld:NamedLayer>
+        <sld:Name>wind-speed-contours-only</sld:Name>
+        <sld:UserStyle>
+          <sld:Name>wind-speed-contours-only</sld:Name>
+          <sld:Title>Wind isolignes seules (ras:Contour, INTERPOLATIONS bicubic côté request)</sld:Title>
+          <sld:FeatureTypeStyle>
+            <sld:Name>contours</sld:Name>
+            <sld:Transformation>
+              <ogc:Function name="ras:Contour">
+                <ogc:Function name="parameter">
+                  <ogc:Literal>data</ogc:Literal>
+                </ogc:Function>
+                <ogc:Function name="parameter">
+                  <ogc:Literal>interval</ogc:Literal>
+                  <ogc:Function name="env">
+                    <ogc:Literal>contourInterval</ogc:Literal>
+                    <ogc:Literal>5.0</ogc:Literal>
+                  </ogc:Function>
+                </ogc:Function>
+                <ogc:Function name="parameter">
+                  <ogc:Literal>simplify</ogc:Literal>
+                  <ogc:Literal>true</ogc:Literal>
+                </ogc:Function>
+                <ogc:Function name="parameter">
+                  <ogc:Literal>smooth</ogc:Literal>
+                  <ogc:Literal>true</ogc:Literal>
+                </ogc:Function>
+              </ogc:Function>
+            </sld:Transformation>
+            <sld:Rule>
+              <sld:LineSymbolizer>
+                <sld:Stroke>
+                  <sld:CssParameter name="stroke"><ogc:Function name="env"><ogc:Literal>stroke</ogc:Literal><ogc:Literal>#ffffff</ogc:Literal></ogc:Function></sld:CssParameter>
+                  <sld:CssParameter name="stroke-opacity">0.55</sld:CssParameter>
+                  <sld:CssParameter name="stroke-width">0.6</sld:CssParameter>
+                </sld:Stroke>
+              </sld:LineSymbolizer>
+              <sld:TextSymbolizer>
+                <sld:Label>
+                  <ogc:PropertyName>value</ogc:PropertyName>
+                </sld:Label>
+                <sld:Font>
+                  <sld:CssParameter name="font-family">Inter, sans-serif</sld:CssParameter>
+                  <sld:CssParameter name="font-size">10</sld:CssParameter>
+                  <sld:CssParameter name="font-style">normal</sld:CssParameter>
+                  <sld:CssParameter name="font-weight">600</sld:CssParameter>
+                </sld:Font>
+                <sld:LabelPlacement>
+                  <sld:LinePlacement>
+                    <sld:PerpendicularOffset>0.0</sld:PerpendicularOffset>
+                  </sld:LinePlacement>
+                </sld:LabelPlacement>
+                <sld:Halo>
+                  <sld:Radius>1.5</sld:Radius>
+                  <sld:Fill>
+                    <sld:CssParameter name="fill">#0a0e1a</sld:CssParameter>
+                    <sld:CssParameter name="fill-opacity">0.7</sld:CssParameter>
+                  </sld:Fill>
+                </sld:Halo>
+                <sld:Fill>
+                  <sld:CssParameter name="fill">#ffffff</sld:CssParameter>
+                </sld:Fill>
+                <sld:VendorOption name="followLine">true</sld:VendorOption>
+                <sld:VendorOption name="repeat">120</sld:VendorOption>
+                <sld:VendorOption name="maxAngleDelta">35</sld:VendorOption>
+              </sld:TextSymbolizer>
+            </sld:Rule>
+          </sld:FeatureTypeStyle>
+        </sld:UserStyle>
+      </sld:NamedLayer>
+    </sld:StyledLayerDescriptor>
+    
+  wave-hs-contours-only.sld: |
+    <?xml version="1.0" encoding="UTF-8"?><sld:StyledLayerDescriptor xmlns:sld="http://www.opengis.net/sld" xmlns="http://www.opengis.net/sld" xmlns:gml="http://www.opengis.net/gml" xmlns:ogc="http://www.opengis.net/ogc" version="1.0.0">
+      <sld:NamedLayer>
+        <sld:Name>wave-hs-contours-only</sld:Name>
+        <sld:UserStyle>
+          <sld:Name>wave-hs-contours-only</sld:Name>
+          <sld:Title>Wave Hs isolignes seules (ras:Contour, INTERPOLATIONS bicubic côté request)</sld:Title>
+          <sld:FeatureTypeStyle>
+            <sld:Name>contours</sld:Name>
+            <sld:Transformation>
+              <ogc:Function name="ras:Contour">
+                <ogc:Function name="parameter">
+                  <ogc:Literal>data</ogc:Literal>
+                </ogc:Function>
+                <ogc:Function name="parameter">
+                  <ogc:Literal>interval</ogc:Literal>
+                  <ogc:Function name="env">
+                    <ogc:Literal>contourInterval</ogc:Literal>
+                    <ogc:Literal>0.5</ogc:Literal>
+                  </ogc:Function>
+                </ogc:Function>
+                <ogc:Function name="parameter">
+                  <ogc:Literal>simplify</ogc:Literal>
+                  <ogc:Literal>true</ogc:Literal>
+                </ogc:Function>
+                <ogc:Function name="parameter">
+                  <ogc:Literal>smooth</ogc:Literal>
+                  <ogc:Literal>true</ogc:Literal>
+                </ogc:Function>
+              </ogc:Function>
+            </sld:Transformation>
+            <sld:Rule>
+              <sld:LineSymbolizer>
+                <sld:Stroke>
+                  <sld:CssParameter name="stroke"><ogc:Function name="env"><ogc:Literal>stroke</ogc:Literal><ogc:Literal>#ffffff</ogc:Literal></ogc:Function></sld:CssParameter>
+                  <sld:CssParameter name="stroke-opacity">0.55</sld:CssParameter>
+                  <sld:CssParameter name="stroke-width">0.6</sld:CssParameter>
+                </sld:Stroke>
+              </sld:LineSymbolizer>
+              <sld:TextSymbolizer>
+                <sld:Label>
+                  <ogc:PropertyName>value</ogc:PropertyName>
+                </sld:Label>
+                <sld:Font>
+                  <sld:CssParameter name="font-family">Inter, sans-serif</sld:CssParameter>
+                  <sld:CssParameter name="font-size">10</sld:CssParameter>
+                  <sld:CssParameter name="font-style">normal</sld:CssParameter>
+                  <sld:CssParameter name="font-weight">600</sld:CssParameter>
+                </sld:Font>
+                <sld:LabelPlacement>
+                  <sld:LinePlacement>
+                    <sld:PerpendicularOffset>0.0</sld:PerpendicularOffset>
+                  </sld:LinePlacement>
+                </sld:LabelPlacement>
+                <sld:Halo>
+                  <sld:Radius>1.5</sld:Radius>
+                  <sld:Fill>
+                    <sld:CssParameter name="fill">#0a0e1a</sld:CssParameter>
+                    <sld:CssParameter name="fill-opacity">0.7</sld:CssParameter>
+                  </sld:Fill>
+                </sld:Halo>
+                <sld:Fill>
+                  <sld:CssParameter name="fill">#ffffff</sld:CssParameter>
+                </sld:Fill>
+                <sld:VendorOption name="followLine">true</sld:VendorOption>
+                <sld:VendorOption name="repeat">120</sld:VendorOption>
+                <sld:VendorOption name="maxAngleDelta">35</sld:VendorOption>
+              </sld:TextSymbolizer>
+            </sld:Rule>
+          </sld:FeatureTypeStyle>
+        </sld:UserStyle>
+      </sld:NamedLayer>
+    </sld:StyledLayerDescriptor>
+    
+  patch.sh: |
+    #!/bin/bash
+    set -e
+    GS_URL="${GS_URL:-http://geoserver:8080/geoserver}"
+    GS_AUTH="${GS_USER:-admin}:${GS_PASSWORD:-geoserver}"
+    WS="${GS_WORKSPACE:-maritime}"
+    log() { echo "[$(date -u -Iseconds)] $*"; }
+
+    for style in sst-contours-only wind-speed-contours-only wave-hs-contours-only; do
+      log "→ PUT $style.sld (?raw=true)"
+      curl -sk -u "$GS_AUTH" -X PUT \
+        -H "Content-Type: application/vnd.ogc.sld+xml" \
+        --data-binary @/slds/$style.sld \
+        "$GS_URL/rest/workspaces/$WS/styles/$style?raw=true" \
+        -o /tmp/resp -w "  HTTP %{http_code}\n"
+      head -c 200 /tmp/resp; echo
+    done
+
+    log "→ Reload GS"
+    curl -sk -u "$GS_AUTH" -X POST "$GS_URL/rest/reload" -o /dev/null -w "  HTTP %{http_code}\n"
+    log "✓ done"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: maritime-contour-sld-patch
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: maritime-contour-sld-patch
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: patch
+          image: curlimages/curl:8.7.1
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "/scripts/patch.sh"]
+          env:
+            - name: GS_URL
+              value: "http://geoserver:8080/geoserver"
+            - name: GS_USER
+              value: admin
+            - name: GS_PASSWORD
+              value: geoserver
+            - name: GS_WORKSPACE
+              value: maritime
+          volumeMounts:
+            - name: slds
+              mountPath: /slds
+            - name: scripts
+              mountPath: /scripts
+          resources:
+            requests: { cpu: "50m",  memory: "32Mi" }
+            limits:   { cpu: "200m", memory: "128Mi" }
+      volumes:
+        - name: slds
+          configMap:
+            name: maritime-contour-sld-patch
+            items:
+              - key: sst-contours-only.sld
+                path: sst-contours-only.sld
+              - key: wind-speed-contours-only.sld
+                path: wind-speed-contours-only.sld
+              - key: wave-hs-contours-only.sld
+                path: wave-hs-contours-only.sld
+        - name: scripts
+          configMap:
+            name: maritime-contour-sld-patch
+            defaultMode: 0755
+            items:
+              - key: patch.sh
+                path: patch.sh
+{{- end }}
