@@ -41,7 +41,7 @@ services:
   aisIngester:
     enabled: true
     image: ghcr.io/sylad/maritime-ais-ingester
-    tag: v1
+    tag: v2-debian
     replicas: 1
     resources:
       requests: { cpu: "50m", memory: "128Mi" }
@@ -89,7 +89,7 @@ services:
   lightningFetcher:
     enabled: true
     image: ghcr.io/sylad/maritime-lightning-fetcher
-    tag: v1
+    tag: v2-debian
     replicas: 1
     resources:
       requests: { cpu: "50m",  memory: "128Mi" }
