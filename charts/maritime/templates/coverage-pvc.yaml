@@ -15,7 +15,10 @@ spec:
   storageClassName: {{ .Values.coverage.storageClass | default "longhorn" }}
   resources:
     requests:
-      storage: {{ .Values.coverage.coverageSize | default "10Gi" }}
+      # 2026-05-19 : bump 10Gi → 50Gi pour absorber retention 7j obs (cf
+      # politique data layer maritime). ~3GB rasters 7j + marge pour évolutions
+      # (Meteosat 15min, RainViewer 10min). Longhorn supporte l'expansion online.
+      storage: {{ .Values.coverage.coverageSize | default "50Gi" }}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

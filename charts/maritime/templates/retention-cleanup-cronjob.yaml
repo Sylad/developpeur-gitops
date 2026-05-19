@@ -39,17 +39,21 @@ spec:
                   export PGPASSWORD="$DB_PASSWORD"
                   echo "[retention] $(date -Iseconds) cleanup start"
                   psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" <<'SQL'
-                    DELETE FROM vessel_positions WHERE ts < now() - INTERVAL '1 day';
-                    DELETE FROM lightning_strikes WHERE ts < now() - INTERVAL '1 day';
-                    DELETE FROM alerts WHERE ts < now() - INTERVAL '1 day';
-                    DELETE FROM buoy_observations WHERE ts < now() - INTERVAL '1 day';
-                    DELETE FROM vessels WHERE last_seen < now() - INTERVAL '1 day';
-                    DELETE FROM vessel_tracks_daily WHERE day < CURRENT_DATE - INTERVAL '1 day';
-                    DELETE FROM metar_observations WHERE ts < now() - INTERVAL '1 day';
-                    DELETE FROM hubeau_observations WHERE ts < now() - INTERVAL '1 day';
-                    DELETE FROM hubeau_piezo WHERE ts < now() - INTERVAL '1 day';
-                    DELETE FROM earthquakes WHERE ts < now() - INTERVAL '1 day';
-                    DELETE FROM firms_observations WHERE ts < now() - INTERVAL '1 day';
+                    -- 2026-05-19 : retention obs passée à 7 jours (cf politique
+                    -- data layer maritime). vessel_positions le plus volumineux
+                    -- (~1.4 GB/jour) : 7j ≈ 10 GB → pg-data PVC 10Gi tight, à
+                    -- bumper en parallèle (chantier pg-data resize séparé).
+                    DELETE FROM vessel_positions WHERE ts < now() - INTERVAL '7 days';
+                    DELETE FROM lightning_strikes WHERE ts < now() - INTERVAL '7 days';
+                    DELETE FROM alerts WHERE ts < now() - INTERVAL '7 days';
+                    DELETE FROM buoy_observations WHERE ts < now() - INTERVAL '7 days';
+                    DELETE FROM vessels WHERE last_seen < now() - INTERVAL '7 days';
+                    DELETE FROM vessel_tracks_daily WHERE day < CURRENT_DATE - INTERVAL '7 days';
+                    DELETE FROM metar_observations WHERE ts < now() - INTERVAL '7 days';
+                    DELETE FROM hubeau_observations WHERE ts < now() - INTERVAL '7 days';
+                    DELETE FROM hubeau_piezo WHERE ts < now() - INTERVAL '7 days';
+                    DELETE FROM earthquakes WHERE ts < now() - INTERVAL '7 days';
+                    DELETE FROM firms_observations WHERE ts < now() - INTERVAL '7 days';
                     VACUUM (ANALYZE) vessel_positions;
                     VACUUM (ANALYZE) lightning_strikes;
                     VACUUM (ANALYZE) alerts;
@@ -84,15 +88,15 @@ spec:
                 - |
                   set -e
                   echo "[coverage-cleanup] $(date -Iseconds) start"
-                  # Obs rasters : 1 jour de retention
+                  # Obs rasters : 7 jours de retention (politique 2026-05-19)
                   for d in /coverage/sat-* /coverage/sst-daily; do
                     [ -d "$d" ] || continue
-                    find "$d" -maxdepth 1 -name "*.tif" -mtime +1 -print -delete || true
+                    find "$d" -maxdepth 1 -name "*.tif" -mtime +7 -print -delete || true
                   done
-                  # Forecast rasters : retention 1j past + 7j future basée sur
+                  # Forecast rasters : retention 7j past + 7j future basée sur
                   # le timestamp dans le nom de fichier (YYYYMMDDTHHMMSSZ).
-                  # Algo : extract YYYYMMDD, compare à J-1 et J+7.
-                  PAST=$(date -u -d '1 day ago' +%Y%m%d)
+                  # Algo : extract YYYYMMDD, compare à J-7 et J+7.
+                  PAST=$(date -u -d '7 days ago' +%Y%m%d)
                   FUTURE=$(date -u -d '7 days' +%Y%m%d)
                   for d in /coverage/wind-speed /coverage/wind-speed-arpege /coverage/wind-speed-arome /coverage/wind-speed-gfs /coverage/wave-hs /coverage/wave-dir; do
                     [ -d "$d" ] || continue
