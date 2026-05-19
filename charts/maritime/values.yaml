@@ -208,7 +208,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-eb1b2fd   # APEX Satellites Phase 2b — nginx /satellites/ ^~ fix (2026-05-19)
+    tag: sha-913e25d   # APEX Satellites Phase 3 — ImageStatic local (2026-05-19)
     replicas: 1
     port: 80
     resources:
