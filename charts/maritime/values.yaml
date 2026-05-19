@@ -13,7 +13,7 @@ services:
     # undici fetch() qui timeoutait sur Alpine 3.23 musl libc en HTTPS
     # externe (USGS, METAR, hubeau-débits, etc.). https.request() marche
     # mais le code utilise fetch() partout → seul recours : base glibc.
-    tag: sha-7216d9e   # APEX Satellites Phase 1+2 (2026-05-19)
+    tag: sha-f0caaa2   # APEX Satellites Phase 4 GeoServer-native (2026-05-19)
     port: 3010
     replicas: 1
     resources:
@@ -114,7 +114,7 @@ services:
   gribParser:
     enabled: true
     image: ghcr.io/sylad/maritime-grib-parser
-    tag: v1
+    tag: sha-f0caaa2   # APEX Satellites Phase 4 — parser sat_geotiff (2026-05-19)
     replicas: 1
     resources:
       requests: { cpu: "100m", memory: "256Mi" }
@@ -208,7 +208,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-47b294b   # APEX Satellites Phase 3 — time-bar + z-index distinct (2026-05-19)
+    tag: sha-f0caaa2   # APEX Satellites Phase 4 — TileWMS GeoServer (2026-05-19)
     replicas: 1
     port: 80
     resources:
