@@ -13,7 +13,7 @@ services:
     # undici fetch() qui timeoutait sur Alpine 3.23 musl libc en HTTPS
     # externe (USGS, METAR, hubeau-débits, etc.). https.request() marche
     # mais le code utilise fetch() partout → seul recours : base glibc.
-    tag: sha-4ee0a31   # + DB sync contour_prefs (mode-aware UX) (2026-05-20)
+    tag: sha-77f4bd9   # + 5 endpoints REST cursor-aware ?at=ISO (metar/hubeau/quakes/piezo/firms)
     port: 3010
     replicas: 1
     resources:
@@ -215,7 +215,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-a953d92  # + animation réactive 3 vector layers (alerts/lightning/buoys cursor-aware)
+    tag: sha-77f4bd9  # + 5 vector backends cursor-aware (metar/hubeau/piezo/quakes/firms via ?at=)
     replicas: 1
     port: 80
     resources:
