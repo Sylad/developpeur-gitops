@@ -13,7 +13,7 @@ services:
     # undici fetch() qui timeoutait sur Alpine 3.23 musl libc en HTTPS
     # externe (USGS, METAR, hubeau-débits, etc.). https.request() marche
     # mais le code utilise fetch() partout → seul recours : base glibc.
-    tag: sha-622762b   # + endpoint backfill sat + {date-N} dynamique (2026-05-19)
+    tag: sha-4ee0a31   # + DB sync contour_prefs (mode-aware UX) (2026-05-20)
     port: 3010
     replicas: 1
     resources:
@@ -215,7 +215,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-325a98c   # + snap validités 30min + fetch window [-10,+20] vector live
+    tag: sha-4ee0a31   # + toggles mode-aware + légende flottante (2026-05-20)
     replicas: 1
     port: 80
     resources:
