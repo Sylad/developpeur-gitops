@@ -215,7 +215,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-53bac4c   # + fix rain validités + clamp cursor hors-fenêtre (2026-05-20)
+    tag: sha-325a98c   # + snap validités 30min + fetch window [-10,+20] vector live
     replicas: 1
     port: 80
     resources:
