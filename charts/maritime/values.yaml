@@ -215,7 +215,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-3f71c54   # + mobile logo specificity fix
+    tag: sha-1720849   # + mobile ✕ close + cache ts-track-wrap + width 320px
     replicas: 1
     port: 80
     resources:
