@@ -215,7 +215,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/maritime-frontend
-    tag: sha-0d98c5a   # + override :host time-slider mobile (translateX/calc cassait)
+    tag: sha-a953d92  # + animation réactive 3 vector layers (alerts/lightning/buoys cursor-aware)
     replicas: 1
     port: 80
     resources:
