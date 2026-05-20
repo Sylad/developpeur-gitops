@@ -22,6 +22,11 @@ spec:
   failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
+      # 2026-05-20 — bump à 1800s (30min) après crash récurrent OOMKill silencieux
+      # sur VACUUM (ANALYZE) vessel_positions ~18M rows (3j d'arriéré accumulés
+      # quand les jobs précédents fail). Le DELETE seul prend ~30-60s, le VACUUM
+      # sur hypertable réclamé prend 2-5 minutes. 30min couvre les cas extrêmes.
+      activeDeadlineSeconds: 1800
       backoffLimit: 2
       template:
         spec:
@@ -72,8 +77,13 @@ spec:
                 - name: DB_NAME
                   valueFrom: { secretKeyRef: { name: pg-data-app, key: dbname } }
               resources:
-                requests: { cpu: "50m",  memory: "64Mi" }
-                limits:   { cpu: "500m", memory: "256Mi" }
+                # 2026-05-20 — bump 256Mi → 2Gi après OOMKill silencieux sur
+                # VACUUM (ANALYZE) vessel_positions (18M rows accumulés sur 3j).
+                # PostgreSQL VACUUM utilise jusqu'à maintenance_work_mem (64MB
+                # default) × parallel_workers, mais le buffer cache + work
+                # buffers gonflent au-delà sur grosses hypertables.
+                requests: { cpu: "50m",  memory: "128Mi" }
+                limits:   { cpu: "1",    memory: "2Gi" }
             # ─── 2026-05-19 — cleanup fichiers /coverage selon politique data layer ───
             # Obs (sst-daily, sat-*) : delete fichiers > 1 jour mtime
             # Forecast (wind*, wave-*) : delete fichiers dont valid_time (extraite
