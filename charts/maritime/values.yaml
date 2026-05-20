@@ -8,7 +8,7 @@ services:
   # ─── API NestJS (core backend) ────────────────────────────────────
   api:
     enabled: true
-    image: ghcr.io/sylad/maritime-api
+    image: ghcr.io/sylad/aetherwx-api
     # v2-debian : base Debian bookworm-slim au lieu d'Alpine — fix
     # undici fetch() qui timeoutait sur Alpine 3.23 musl libc en HTTPS
     # externe (USGS, METAR, hubeau-débits, etc.). https.request() marche
@@ -40,7 +40,7 @@ services:
   # v2-debian : base Debian (cf fix undici/Alpine).
   aisIngester:
     enabled: true
-    image: ghcr.io/sylad/maritime-ais-ingester
+    image: ghcr.io/sylad/aetherwx-ais-ingester
     tag: v2-debian
     replicas: 1
     resources:
@@ -52,7 +52,7 @@ services:
   # ─── ais-decoder (consume RMQ → INSERT PG) ────────────────────────
   aisDecoder:
     enabled: true
-    image: ghcr.io/sylad/maritime-ais-decoder
+    image: ghcr.io/sylad/aetherwx-ais-decoder
     tag: v1
     replicas: 1
     resources:
@@ -62,7 +62,7 @@ services:
   # ─── alerts-engine (consume RMQ + PG hypertable) ──────────────────
   alertsEngine:
     enabled: true
-    image: ghcr.io/sylad/maritime-alerts-engine
+    image: ghcr.io/sylad/aetherwx-alerts-engine
     tag: v1
     replicas: 1
     resources:
@@ -76,7 +76,7 @@ services:
   # ─── track-builder (cron hourly) ──────────────────────────────────
   trackBuilder:
     enabled: true
-    image: ghcr.io/sylad/maritime-track-builder
+    image: ghcr.io/sylad/aetherwx-track-builder
     tag: v1
     replicas: 1
     resources:
@@ -88,7 +88,7 @@ services:
   # v2-debian : fix undici/Alpine.
   lightningFetcher:
     enabled: true
-    image: ghcr.io/sylad/maritime-lightning-fetcher
+    image: ghcr.io/sylad/aetherwx-lightning-fetcher
     tag: v2-debian
     replicas: 1
     resources:
@@ -100,7 +100,7 @@ services:
   # par bug undici. Bbox Europe étroite par défaut côté code.
   buoyFetcher:
     enabled: true
-    image: ghcr.io/sylad/maritime-buoy-fetcher
+    image: ghcr.io/sylad/aetherwx-buoy-fetcher
     tag: latest
     replicas: 1
     resources:
@@ -113,7 +113,7 @@ services:
   # (osgeo/gdal base, ~700MB) — pas concerné par bug undici.
   gribParser:
     enabled: true
-    image: ghcr.io/sylad/maritime-grib-parser
+    image: ghcr.io/sylad/aetherwx-grib-parser
     tag: sha-a3a96f0   # Phase 4 + fix data-date filename (2026-05-19)
     replicas: 1
     resources:
@@ -126,7 +126,7 @@ services:
   # (single-node k3s = hostPath OK, à industrialiser via RWX/SeaweedFS).
   weatherFetcher:
     enabled: true
-    image: ghcr.io/sylad/maritime-weather-fetcher
+    image: ghcr.io/sylad/aetherwx-weather-fetcher
     tag: v1
     replicas: 1
     resources:
@@ -135,7 +135,7 @@ services:
 
   weatherFetcherArpege:
     enabled: true
-    image: ghcr.io/sylad/maritime-weather-fetcher-arpege
+    image: ghcr.io/sylad/aetherwx-weather-fetcher-arpege
     tag: latest
     replicas: 1
     resources:
@@ -144,7 +144,7 @@ services:
 
   weatherFetcherArome:
     enabled: true
-    image: ghcr.io/sylad/maritime-weather-fetcher-arome
+    image: ghcr.io/sylad/aetherwx-weather-fetcher-arome
     tag: latest
     replicas: 1
     resources:
@@ -156,7 +156,7 @@ services:
   # (NOAA publie d'abord preliminary, finalise 14-21j plus tard).
   sstFetcher:
     enabled: true
-    image: ghcr.io/sylad/maritime-sst-fetcher
+    image: ghcr.io/sylad/aetherwx-sst-fetcher
     tag: latest
     replicas: 1
     resources:
@@ -168,7 +168,7 @@ services:
   # PVC data_dir RWO single-replica preprod. Phase prod = StickySession + N replicas.
   geoserver:
     enabled: true
-    image: ghcr.io/sylad/maritime-geoserver
+    image: ghcr.io/sylad/aetherwx-geoserver
     tag: latest
     # 2026-05-17 soir : scale-down à 1 replica après bug "layers disparaissent"
     # (Sylvain "laisse qu'un réplicas, c'est lamentable, mais pour l'instant
@@ -208,13 +208,13 @@ services:
     # péter le sync ArgoCD de l'app maritime. À supprimer définitivement du
     # repo (chart maritime template + service maritime-atlas) en Phase E.
     enabled: false
-    image: ghcr.io/sylad/maritime-style-bootstrap
+    image: ghcr.io/sylad/aetherwx-style-bootstrap
     tag: sha-4c4a077
 
   # ─── Frontend Angular SPA + nginx (AetherWX brand) ────────────────
   frontend:
     enabled: true
-    image: ghcr.io/sylad/maritime-frontend
+    image: ghcr.io/sylad/aetherwx-frontend
     tag: sha-76be898  # + Sprint 0 rebrand UA nginx (aetherwx/*-cache)
     replicas: 1
     port: 80
