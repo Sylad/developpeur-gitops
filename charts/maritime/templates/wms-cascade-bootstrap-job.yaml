@@ -22,10 +22,14 @@ metadata:
     argocd.argoproj.io/sync-wave: "0"
 data:
   bootstrap.sh: |
-    #!/bin/bash
-    # Idempotent : DELETE old + POST fresh. GS retourne 200/201/409 selon
-    # état → on tolère tout sauf 5xx.
-    set -e
+    #!/bin/sh
+    # POSIX sh (BusyBox de curlimages/curl). Idempotent : DELETE old + POST
+    # fresh. GS retourne 201 sur création, 404 sur DELETE si pas existant.
+    #
+    # 2026-05-20 — switch XML → JSON après bug XStream StreamException sur
+    # POST wmsstore XML (XStream WMSStoreInfoConverter cassé sur GS 2.28.3).
+    # Le payload JSON contourne XStream et utilise le converter Jackson.
+    set -eu
 
     GS_URL="${GS_URL:-http://geoserver:8080/geoserver}"
     GS_AUTH="${GS_USER:-admin}:${GS_PASSWORD:-geoserver}"
@@ -34,44 +38,31 @@ data:
     log() { echo "[$(date -u -Iseconds)] $*"; }
 
     create_wmsstore() {
-      local name="$1"
-      local capabilities_url="$2"
+      name="$1"
+      capabilities_url="$2"
       log "→ wmsstore $name"
-      # DELETE recurse (idempotent — supprime store + layers cascade liés)
+      # DELETE recurse (supprime store + layers cascade liés). Idempotent.
       curl -sk -u "$GS_AUTH" -X DELETE \
         "$GS_URL/rest/workspaces/$WS/wmsstores/$name?recurse=true" \
         -o /dev/null -w "  DELETE %{http_code}\n" || true
-      # POST fresh
-      curl -sk -u "$GS_AUTH" -X POST -H "Content-Type: application/xml" \
-        -d "<wmsStore>
-              <name>$name</name>
-              <type>WMS</type>
-              <enabled>true</enabled>
-              <workspace><name>$WS</name></workspace>
-              <capabilitiesURL>$capabilities_url</capabilitiesURL>
-              <maxConnections>6</maxConnections>
-              <readTimeout>60</readTimeout>
-              <connectTimeout>30</connectTimeout>
-            </wmsStore>" \
+      # POST JSON (bypass XStream XML bug)
+      curl -sk -u "$GS_AUTH" -X POST -H "Content-Type: application/json" \
+        -d "{\"wmsStore\":{\"name\":\"$name\",\"type\":\"WMS\",\"enabled\":true,\"workspace\":{\"name\":\"$WS\"},\"capabilitiesURL\":\"$capabilities_url\",\"maxConnections\":6,\"readTimeout\":60,\"connectTimeout\":30}}" \
         "$GS_URL/rest/workspaces/$WS/wmsstores" \
         -o /tmp/resp -w "  POST %{http_code}\n"
       head -c 200 /tmp/resp; echo
     }
 
     publish_cascade_layer() {
-      local store="$1"
-      local native_name="$2"   # e.g. msg_rss:ir039_nrt
-      local layer_name="$3"    # e.g. msg-rss-ir-eu (URL-safe + lowercase-dash)
-      local title="$4"
+      store="$1"
+      native_name="$2"   # ex: msg_rss:ir039_nrt
+      layer_name="$3"    # ex: sat-eu-ir-rss (URL-safe + lowercase-dash)
+      title="$4"
       log "→ wmslayer cascade $WS:$layer_name (← $store:$native_name)"
-      # POST le wmslayer cascade
-      curl -sk -u "$GS_AUTH" -X POST -H "Content-Type: application/xml" \
-        -d "<wmsLayer>
-              <name>$layer_name</name>
-              <nativeName>$native_name</nativeName>
-              <title>$title</title>
-              <enabled>true</enabled>
-            </wmsLayer>" \
+      # POST JSON avec advertised=true direct (PUT advertised=true après
+      # création trigger un bug XStream WMSLayerInfoConverter HTTP 500).
+      curl -sk -u "$GS_AUTH" -X POST -H "Content-Type: application/json" \
+        -d "{\"wmsLayer\":{\"name\":\"$layer_name\",\"nativeName\":\"$native_name\",\"title\":\"$title\",\"enabled\":true,\"advertised\":true}}" \
         "$GS_URL/rest/workspaces/$WS/wmsstores/$store/wmslayers" \
         -o /tmp/resp -w "  POST %{http_code}\n"
       head -c 300 /tmp/resp; echo
