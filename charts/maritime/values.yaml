@@ -215,7 +215,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-54d7070  # Sprint 0 rebuild dual-tag (2026-05-21)
+    tag: sha-f706488  # Phase 5a+5b — route /globe MapLibre WebGL (2026-05-21)
     replicas: 1
     port: 80
     resources:
