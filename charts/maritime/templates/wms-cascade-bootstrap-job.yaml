@@ -33,7 +33,7 @@ data:
 
     GS_URL="${GS_URL:-http://geoserver:8080/geoserver}"
     GS_AUTH="${GS_USER:-admin}:${GS_PASSWORD:-geoserver}"
-    WS="${GS_WORKSPACE:-maritime}"
+    WS="${GS_WORKSPACE:-aetherwx}"
 
     log() { echo "[$(date -u -Iseconds)] $*"; }
 
@@ -138,7 +138,7 @@ spec:
             - name: GS_PASSWORD
               value: geoserver
             - name: GS_WORKSPACE
-              value: maritime
+              value: aetherwx
           volumeMounts:
             - name: script
               mountPath: /scripts

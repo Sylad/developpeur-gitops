@@ -38,18 +38,18 @@ data:
     # pas encore tant que le Job wms-cascade-bootstrap n'a pas réussi, mais
     # PUT silencieux 404 → on tolère).
     for layer in \
-      "maritime:sat-modis-true-color" \
-      "maritime:sat-viirs-true-color" \
-      "maritime:sat-modis-ir" \
-      "maritime:sat-airs-air-temp" \
-      "maritime:sat-modis-cloud-top" \
-      "maritime:sat-modis-aerosol" \
-      "maritime:sat-viirs-day-night" \
-      "maritime:sat-eu-ir-rss" \
-      "maritime:sat-global-ir-mtg" \
-      "maritime:sat-eu-hrv-rgb" \
-      "maritime:radar-dwd-de" \
-      "maritime:radar-knmi-nl"; do
+      "aetherwx:sat-modis-true-color" \
+      "aetherwx:sat-viirs-true-color" \
+      "aetherwx:sat-modis-ir" \
+      "aetherwx:sat-airs-air-temp" \
+      "aetherwx:sat-modis-cloud-top" \
+      "aetherwx:sat-modis-aerosol" \
+      "aetherwx:sat-viirs-day-night" \
+      "aetherwx:sat-eu-ir-rss" \
+      "aetherwx:sat-global-ir-mtg" \
+      "aetherwx:sat-eu-hrv-rgb" \
+      "aetherwx:radar-dwd-de" \
+      "aetherwx:radar-knmi-nl"; do
       log "→ GWC config $layer"
       # Vérifier si la layer existe côté GWC (sat cascade peuvent ne pas
       # encore être créés). Skip si 404.

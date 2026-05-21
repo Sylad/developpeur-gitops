@@ -1,0 +1,106 @@
+{{- if .Values.services.gsWorkspaceRename.enabled }}
+# GS Workspace Rename — Sprint 0 (2026-05-21)
+#
+# Renomme atomiquement le workspace GeoServer `maritime` → `aetherwx` via
+# REST PUT. Idempotent : si `aetherwx` existe déjà ET `maritime` n'existe
+# plus → no-op.
+#
+# Exécution : ArgoCD PreSync hook → tourne AVANT le rollout des pods
+# API/frontend qui pointent sur le nouveau workspace via env var
+# GEOSERVER_WORKSPACE=aetherwx. Garantit que le workspace existe AVANT
+# que le code tente de l'utiliser.
+#
+# Downtime : ~30-60s pendant le rolling restart des pods. Acceptable
+# pour un site perso. Rollback : commit gitops inverse + Job rename
+# inverse (manuel via curl si besoin urgent).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gs-workspace-rename-maritime-to-aetherwx
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+spec:
+  ttlSecondsAfterFinished: 600
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app: gs-workspace-rename
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: rename
+          image: curlimages/curl:8.10.1
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: GS_URL
+              value: "http://geoserver:8080/geoserver"
+            - name: GS_USER
+              value: admin
+            - name: GS_PASSWORD
+              value: geoserver
+            - name: OLD_WS
+              value: maritime
+            - name: NEW_WS
+              value: aetherwx
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+
+              GS_AUTH="-u ${GS_USER}:${GS_PASSWORD}"
+              GS_REST="${GS_URL}/rest"
+
+              # Attente readiness GS — important si Job lance avant que GS soit up
+              echo "→ Wait GeoServer ready"
+              for i in $(seq 1 30); do
+                if curl -sf -o /dev/null ${GS_AUTH} "${GS_REST}/workspaces.json"; then
+                  echo "  GS ready after ${i}s"
+                  break
+                fi
+                sleep 2
+              done
+
+              # Cas 1 : aetherwx existe déjà → no-op (idempotent)
+              HTTP_NEW=$(curl -s -o /dev/null -w "%{http_code}" ${GS_AUTH} "${GS_REST}/workspaces/${NEW_WS}.json")
+              if [ "$HTTP_NEW" = "200" ]; then
+                echo "✓ Workspace ${NEW_WS} existe déjà — no-op"
+                exit 0
+              fi
+
+              # Cas 2 : maritime existe → PUT rename
+              HTTP_OLD=$(curl -s -o /dev/null -w "%{http_code}" ${GS_AUTH} "${GS_REST}/workspaces/${OLD_WS}.json")
+              if [ "$HTTP_OLD" != "200" ]; then
+                echo "✗ Ni ${OLD_WS} ni ${NEW_WS} n'existent côté GS — état inconnu, abort"
+                exit 1
+              fi
+
+              echo "→ PUT rename ${OLD_WS} → ${NEW_WS}"
+              HTTP_PUT=$(curl -s -o /tmp/rename.out -w "%{http_code}" \
+                ${GS_AUTH} \
+                -H "Content-Type: application/json" \
+                -X PUT \
+                -d "{\"workspace\":{\"name\":\"${NEW_WS}\"}}" \
+                "${GS_REST}/workspaces/${OLD_WS}.json")
+
+              if [ "$HTTP_PUT" != "200" ]; then
+                echo "✗ PUT rename failed: HTTP $HTTP_PUT"
+                cat /tmp/rename.out
+                exit 1
+              fi
+
+              echo "✓ Rename appliqué — verify catalog"
+              curl -sf ${GS_AUTH} "${GS_REST}/workspaces/${NEW_WS}.json" | head -c 300
+              echo ""
+
+              # Reload catalog pour propager rename sur l'in-memory state
+              echo "→ Reload catalog"
+              curl -sf ${GS_AUTH} -X POST "${GS_REST}/reload"
+              echo "✓ Reload done"
+          resources:
+            requests: { cpu: "20m",  memory: "32Mi" }
+            limits:   { cpu: "100m", memory: "128Mi" }
+{{- end }}

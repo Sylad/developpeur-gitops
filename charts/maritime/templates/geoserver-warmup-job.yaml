@@ -76,7 +76,7 @@ spec:
                 -1500000,4500000,2500000,6500000
                 -3000000,4000000,3500000,7500000
               "
-              LAYERS="maritime:sst-daily maritime:wind-speed maritime:wind-speed-arpege maritime:wind-speed-arome maritime:wave-hs"
+              LAYERS="aetherwx:sst-daily aetherwx:wind-speed aetherwx:wind-speed-arpege aetherwx:wind-speed-arome aetherwx:wave-hs"
 
               # On hit chaque pod GS individuellement via son PodIP plutôt
               # que le Service (round-robin) — sinon une seule replica sur

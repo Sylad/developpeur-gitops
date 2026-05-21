@@ -13,7 +13,7 @@ services:
     # undici fetch() qui timeoutait sur Alpine 3.23 musl libc en HTTPS
     # externe (USGS, METAR, hubeau-débits, etc.). https.request() marche
     # mais le code utilise fetch() partout → seul recours : base glibc.
-    tag: sha-54d7070   # Sprint 0 rebuild dual-tag (2026-05-21)
+    tag: sha-26b0747   # Sprint 0 GS workspace rename (2026-05-21)
     port: 3010
     replicas: 1
     resources:
@@ -28,7 +28,7 @@ services:
       GEOSERVER_URL: "http://geoserver:8080/geoserver"
       GEOSERVER_ADMIN_USER: admin
       GEOSERVER_ADMIN_PASSWORD: geoserver
-      GEOSERVER_WORKSPACE: maritime
+      GEOSERVER_WORKSPACE: aetherwx  # Sprint 0 GS workspace rename (2026-05-21)
       PALETTE_LIMIT_PER_USER: "5"
       ADMIN_EMAIL: sylvain.ladoire@gmail.com
       ADMIN_USERNAME: sylvain
@@ -211,11 +211,19 @@ services:
     image: ghcr.io/sylad/aetherwx-style-bootstrap
     tag: sha-4c4a077
 
+  # ─── GS Workspace Rename (Sprint 0 — 2026-05-21) ──────────────────
+  # Job PreSync idempotent qui renomme atomiquement le workspace GS
+  # `maritime` → `aetherwx`. Toggle ON pour le rollout one-shot.
+  # Une fois confirmé en prod, peut rester ON (idempotent no-op si
+  # `aetherwx` existe déjà).
+  gsWorkspaceRename:
+    enabled: true
+
   # ─── Frontend Angular SPA + nginx (AetherWX brand) ────────────────
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-f706488  # Phase 5a+5b — route /globe MapLibre WebGL (2026-05-21)
+    tag: sha-26b0747  # Sprint 0 GS workspace rename (2026-05-21)
     replicas: 1
     port: 80
     resources:
