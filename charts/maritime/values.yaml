@@ -223,7 +223,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-b46ea27  # Globe wind AA smoothstep + speedFactor 0.1→0.06 (2026-05-21)
+    tag: sha-288cb2c  # Globe wind K=10 + pointSize 3.5 (anti-rectangles, 2026-05-21)
     replicas: 1
     port: 80
     resources:
