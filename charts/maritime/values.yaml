@@ -13,7 +13,7 @@ services:
     # undici fetch() qui timeoutait sur Alpine 3.23 musl libc en HTTPS
     # externe (USGS, METAR, hubeau-débits, etc.). https.request() marche
     # mais le code utilise fetch() partout → seul recours : base glibc.
-    tag: sha-26b0747   # Sprint 0 GS workspace rename (2026-05-21)
+    tag: sha-0395c8f   # Sprint 0 hotfix URL paths /geoserver/aetherwx/ (2026-05-21)
     port: 3010
     replicas: 1
     resources:
@@ -28,7 +28,7 @@ services:
       GEOSERVER_URL: "http://geoserver:8080/geoserver"
       GEOSERVER_ADMIN_USER: admin
       GEOSERVER_ADMIN_PASSWORD: geoserver
-      GEOSERVER_WORKSPACE: aetherwx  # Sprint 0 GS workspace rename (2026-05-21)
+      GEOSERVER_WORKSPACE: aetherwx  # Sprint 0 hotfix URL paths /geoserver/aetherwx/ (2026-05-21)
       PALETTE_LIMIT_PER_USER: "5"
       ADMIN_EMAIL: sylvain.ladoire@gmail.com
       ADMIN_USERNAME: sylvain
@@ -223,7 +223,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-26b0747  # Sprint 0 GS workspace rename (2026-05-21)
+    tag: sha-0395c8f  # Sprint 0 hotfix URL paths /geoserver/aetherwx/ (2026-05-21)
     replicas: 1
     port: 80
     resources:
