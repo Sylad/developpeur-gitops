@@ -41,7 +41,7 @@ services:
   aisIngester:
     enabled: true
     image: ghcr.io/sylad/aetherwx-ais-ingester
-    tag: sha-54d7070   # Sprint 0 rebuild dual-tag (2026-05-21)
+    tag: sha-6c23593   # AIS SSL bypass aisstream.io (2026-05-21)
     replicas: 1
     resources:
       requests: { cpu: "50m", memory: "128Mi" }
