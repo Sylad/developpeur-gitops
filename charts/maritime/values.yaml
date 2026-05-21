@@ -223,7 +223,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-e33ed81  # Globe wind triangle strip extrusion wide-line (2026-05-21)
+    tag: sha-221e2e4  # Globe wind triangle strip extrusion wide-line (2026-05-21)
     replicas: 1
     port: 80
     resources:
