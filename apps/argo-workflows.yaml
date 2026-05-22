@@ -1,0 +1,83 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argo-workflows
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    # Argo Workflows crée des resources `Workflow` runtime à chaque trigger
+    # CronWorkflow → out-of-git. Sans ignoreDifferences, ArgoCD signale
+    # OutOfSync en boucle. Cf argo_workflows_study_2026_05_21.md.
+    argocd.argoproj.io/sync-options: ServerSideApply=true
+spec:
+  project: default
+  source:
+    # Chart Helm officiel argo-helm. Version pinée pour reproductibilité.
+    repoURL: https://argoproj.github.io/argo-helm
+    chart: argo-workflows
+    targetRevision: 1.0.14   # appVersion v4.0.5 — 2026-05-22
+    helm:
+      releaseName: argo-workflows
+      values: |
+        # Mode "server auth" — pas d'OIDC SSO pour MVP, accès derrière
+        # cloudflared tunnel (workflows.sladoire.dev — à configurer en G12b).
+        server:
+          authMode: server
+          # UI réplique unique (single user dev, pas besoin HA).
+          replicas: 1
+          # Resources légères — controller fait le gros boulot, pas l'UI.
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+
+        # Controller = chef d'orchestre Workflows. Resources scalées au cas
+        # d'usage MVP (~1 workflow toutes les 6h pour GFS refresh).
+        controller:
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          # Watch les Workflows dans les namespaces ciblés. `argo` pour les
+          # workflows ad-hoc, `maritime` pour les CronWorkflow GFS-refresh.
+          workflowNamespaces:
+            - argo
+            - maritime
+          # Persistance des workflow status après completion (visible UI 7j).
+          persistence:
+            archive: false   # MVP : pas d'archive Postgres pour l'instant
+            nodeStatusOffLoad: false
+
+        # ServiceAccount default pour les workflows. Override possible par
+        # workflow via spec.serviceAccountName. RBAC granulaire en G12b.
+        workflow:
+          serviceAccount:
+            create: true
+            name: argo-workflow
+          rbac:
+            create: true
+
+        # Disable executor sidecar pour les Pods workflow (deprecated emissary
+        # already default in v3.5+). On garde le default.
+
+        # Désactive l'install Prometheus servicemonitor (pas de prom-operator
+        # installé). Réactiver en G12c si on ajoute observabilité.
+        servicemonitor:
+          enabled: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argo
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
