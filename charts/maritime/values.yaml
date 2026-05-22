@@ -64,7 +64,7 @@ services:
   alertsEngine:
     enabled: true
     image: ghcr.io/sylad/aetherwx-alerts-engine
-    tag: sha-dcb0613
+    tag: sha-610cae9
     replicas: 1
     resources:
       requests: { cpu: "50m",  memory: "128Mi" }
@@ -224,7 +224,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-a9fd83c
+    tag: sha-738297a
     replicas: 1
     port: 80
     resources:
