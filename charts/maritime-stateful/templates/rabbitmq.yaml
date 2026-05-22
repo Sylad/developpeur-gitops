@@ -4,6 +4,9 @@ metadata:
   name: rmq
 spec:
   replicas: {{ .Values.rabbitmq.replicas }}
+  {{- with .Values.rabbitmq.image }}
+  image: {{ . | quote }}
+  {{- end }}
   persistence:
     storage: {{ .Values.rabbitmq.storage.size }}
     storageClassName: {{ .Values.rabbitmq.storage.storageClass }}
@@ -15,5 +18,8 @@ spec:
       - rabbitmq_prometheus
     additionalConfig: |
       log.console.level = info
+      # G13 (2026-05-22) — `cluster_partition_handling` ignored par RMQ 4.3+
+      # (key acceptée mais sans effet). À retirer définitivement au prochain
+      # nettoyage de config. Cf release notes 4.3.0.
       cluster_partition_handling = autoheal
       vm_memory_high_watermark.relative = 0.6

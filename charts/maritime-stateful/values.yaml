@@ -38,6 +38,10 @@ pgData:
 
 rabbitmq:
   replicas: 1
+  # G13 (2026-05-22) — bump 4.2.6 → 4.3.0 (in-place upgrade supporté par
+  # release notes officielles, single-node donc pas de migration cluster).
+  # Operator 2.21.0 supporte la 4.3.x.
+  image: "rabbitmq:4.3.0-management"
   storage:
     size: 2Gi
     storageClass: local-path
