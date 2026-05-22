@@ -223,7 +223,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-0c6cdbc  # maplibre-gl.css import fix popup (2026-05-22)
+    tag: sha-93213b2
     replicas: 1
     port: 80
     resources:
