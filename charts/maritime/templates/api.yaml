@@ -34,6 +34,12 @@ spec:
             - secretRef:
                 name: maritime-google-oauth
                 optional: true
+            # G12g (2026-05-22) — INTERNAL_TRIGGER_TOKEN pour Argo Workflows
+            # trigger endpoint (cf orchestrator/internal-trigger.controller.ts).
+            # GEOSERVER_ADMIN_USER + GEOSERVER_ADMIN_PASSWORD (refacto SEC-1).
+            - secretRef:
+                name: maritime-shared-env
+                optional: false
           resources:
             {{- toYaml .Values.services.api.resources | nindent 12 }}
       # Phase 4 (2026-05-19) — api n'a plus besoin de PVC satellite-data :

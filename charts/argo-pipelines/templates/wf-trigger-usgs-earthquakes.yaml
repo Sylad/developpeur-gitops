@@ -1,0 +1,64 @@
+{{- if .Values.workflows.triggerUsgsEarthquakes.enabled }}
+# G12g (2026-05-22) — Première migration source orchestrator NestJS → Argo.
+#
+# Pattern :
+#   - Argo CronWorkflow joue le rôle de scheduler externe (au lieu du runner
+#     embedded `@nestjs/schedule` dans maritime-api).
+#   - L'ingest lui-même reste géré par OrchestratorRunnerService (fetch USGS
+#     GeoJSON → parse → INSERT PG). On évite la duplication de logique.
+#   - Workflow trigger via POST /internal-trigger/sources/306 avec un
+#     header X-Service-Token (Secret partagé maritime-internal-token).
+#
+# Étape de validation : pendant la transition, la source côté NestJS reste
+# `enabled=true` et son cron interne continue de tourner. La source recevra
+# 2 triggers en parallèle (interne + Argo). L'INSERT est idempotent (ON
+# CONFLICT) donc pas de duplication PG. À 24h, si OK → désactiver via UI
+# `PATCH /admin/sources/306 enabled=false`, Argo prend le relais 100%.
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: trigger-usgs-earthquakes
+  namespace: argo
+spec:
+  schedules:
+    - "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
+  workflowSpec:
+    entrypoint: main
+    serviceAccountName: argo-workflow
+    activeDeadlineSeconds: 120
+    ttlStrategy:
+      secondsAfterCompletion: 86400
+    arguments:
+      parameters:
+        - name: api-url
+          value: {{ .Values.workflows.triggerUsgsEarthquakes.apiUrl | quote }}
+        - name: source-id
+          value: {{ .Values.workflows.triggerUsgsEarthquakes.sourceId | quote }}
+    templates:
+      - name: main
+        steps:
+          - - name: trigger
+              template: post-trigger
+      - name: post-trigger
+        retryStrategy:
+          limit: 2
+          backoff: { duration: "10s", factor: 2 }
+        container:
+          image: {{ .Values.workflows.triggerUsgsEarthquakes.image | quote }}
+          command: [sh, -c]
+          envFrom:
+            - secretRef:
+                name: {{ .Values.workflows.triggerUsgsEarthquakes.secretName | quote }}
+          args:
+            - |
+              URL="{{`{{workflow.parameters.api-url}}`}}/internal-trigger/sources/{{`{{workflow.parameters.source-id}}`}}"
+              echo "POST $URL"
+              curl -fsS -X POST -H "X-Service-Token: ${INTERNAL_TRIGGER_TOKEN}" "$URL" -o /tmp/r.json
+              echo "OK · response : $(cat /tmp/r.json)"
+          resources:
+            requests: { cpu: "10m", memory: "16Mi" }
+            limits:   { cpu: "100m", memory: "64Mi" }
+{{- end }}

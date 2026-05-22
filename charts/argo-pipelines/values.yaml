@@ -21,6 +21,19 @@ workflows:
   # GeoServer prod (version, workspace aetherwx, layer sst-daily). Si une
   # étape foire → workflow Failed + visible dans UI. But : monitoring
   # actif de la santé GS au-delà du livenessProbe basique du pod.
+  # G12g (2026-05-22) — première migration source orchestrator NestJS →
+  # Argo Workflows. Source pilote : usgs-earthquakes-day (id=306, cron */5).
+  # Workflow trigger l'endpoint /internal-trigger/sources/:id de maritime-api
+  # avec un header X-Service-Token. La logique d'ingest reste côté NestJS
+  # (pattern "Workflow = chef d'orchestre" cf argo_workflows_study_2026_05_21).
+  triggerUsgsEarthquakes:
+    enabled: true
+    image: curlimages/curl:8.10.1
+    apiUrl: "http://maritime-api.maritime.svc.cluster.local.:3010"
+    sourceId: 306
+    # Secret K8s `maritime-internal-token` (ns argo) contient INTERNAL_TRIGGER_TOKEN
+    secretName: "maritime-internal-token"
+
   gsHealthcheck:
     enabled: true
     image: curlimages/curl:8.10.1
