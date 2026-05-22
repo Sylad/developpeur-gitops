@@ -20,7 +20,9 @@ metadata:
   name: hello-healthz
   namespace: argo
 spec:
-  schedule: "*/5 * * * *"
+  # v3.6+ API : schedules array. Cf argo-workflows breaking change.
+  schedules:
+    - "*/5 * * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 5
   failedJobsHistoryLimit: 3
