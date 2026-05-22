@@ -42,8 +42,11 @@ spec:
                 name: {{ .Values.workflows.triggerSatelliteModis.secretName | quote }}
           args:
             - |
-              URL="{{`{{workflow.parameters.api-url}}`}}/internal-trigger/sources/{{`{{workflow.parameters.source-id}}`}}"
-              curl -fsS -X POST -H "X-Service-Token: ${INTERNAL_TRIGGER_TOKEN}" "$URL"
+              set -e
+              URL="{{`{{workflow.parameters.api-url}}`}}/api/internal-trigger/sources/{{`{{workflow.parameters.source-id}}`}}"
+              echo "POST $URL"
+              curl -fsS -X POST -H "X-Service-Token: ${INTERNAL_TRIGGER_TOKEN}" "$URL" -o /tmp/r.json
+              echo "OK · response : $(cat /tmp/r.json)"
           resources:
             requests: { cpu: "10m", memory: "16Mi" }
             limits:   { cpu: "100m", memory: "64Mi" }

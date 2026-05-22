@@ -54,7 +54,7 @@ spec:
                 name: {{ .Values.workflows.triggerUsgsEarthquakes.secretName | quote }}
           args:
             - |
-              URL="{{`{{workflow.parameters.api-url}}`}}/internal-trigger/sources/{{`{{workflow.parameters.source-id}}`}}"
+              URL="{{`{{workflow.parameters.api-url}}`}}/api/internal-trigger/sources/{{`{{workflow.parameters.source-id}}`}}"
               echo "POST $URL"
               curl -fsS -X POST -H "X-Service-Token: ${INTERNAL_TRIGGER_TOKEN}" "$URL" -o /tmp/r.json
               echo "OK · response : $(cat /tmp/r.json)"
