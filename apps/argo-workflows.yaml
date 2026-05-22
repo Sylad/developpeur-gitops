@@ -50,10 +50,10 @@ spec:
           workflowNamespaces:
             - argo
             - maritime
-          # Persistance des workflow status après completion (visible UI 7j).
-          persistence:
-            archive: false   # MVP : pas d'archive Postgres pour l'instant
-            nodeStatusOffLoad: false
+          # Pas de bloc `persistence` — sans Postgres backend configuré, le
+          # default in-memory (workflow status visible UI tant que le pod
+          # controller vit) suffit pour MVP. Activation persistance + archive
+          # = G12e si besoin de timeline > 7j ou multi-replica.
 
         # ServiceAccount default pour les workflows. Override possible par
         # workflow via spec.serviceAccountName. RBAC granulaire en G12b.
