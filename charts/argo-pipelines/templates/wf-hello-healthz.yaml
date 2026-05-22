@@ -21,8 +21,11 @@ metadata:
   namespace: argo
 spec:
   # v3.6+ API : schedules array. Cf argo-workflows breaking change.
+  # Schedule passé de */5 (debugging) à 0 */6 (toutes les 6h) après
+  # validation MVP G12d. Cf code-review 2026-05-22 : 288 runs/jour =
+  # overhead pour un check sanity, 4 runs/jour suffisent.
   schedules:
-    - "*/5 * * * *"
+    - "0 */6 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 5
   failedJobsHistoryLimit: 3
