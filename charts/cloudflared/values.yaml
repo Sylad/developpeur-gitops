@@ -7,9 +7,14 @@
 #    aetherwx.sladoire.dev   → http://maritime-frontend.maritime.svc.cluster.local:80
 #    geoserver.sladoire.dev  → http://geoserver.maritime.svc.cluster.local:8080
 #    argocd.sladoire.dev     → http://argocd-server.argocd.svc.cluster.local:80
+#    workflows.sladoire.dev  → http://argo-workflows-server.argo.svc.cluster.local:2746  (G12b 2026-05-22)
 #    ol.sladoire.dev         → http://ol-frontend.preprod.svc.cluster.local:80
 #    finance.sladoire.dev    → http://finance-frontend.preprod.svc.cluster.local:80
 #    warhammer.sladoire.dev  → http://warhammer-frontend.preprod.svc.cluster.local:80
+#
+# workflows.sladoire.dev protégé par Cloudflare Access (Self-hosted App)
+# avec policy "Allow Sylvain" (email sylvain.ladoire@gmail.com via OTP).
+# Sans CF Access, l'UI Argo Workflows serait OUVERTE (authMode: server).
 # 4. Le tunnel auto-crée les CNAME DNS records sur sladoire.dev → tunnel ID
 # 5. Stocker le token via : kubectl create secret generic cloudflared-token -n infra \
 #       --from-literal=token='<TOKEN>'
