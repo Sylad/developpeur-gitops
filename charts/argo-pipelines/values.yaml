@@ -34,6 +34,35 @@ workflows:
     # Secret K8s `maritime-internal-token` (ns argo) contient INTERNAL_TRIGGER_TOKEN
     secretName: "maritime-internal-token"
 
+  # G12g-extension (2026-05-22) — 4 sources orchestrator migrées au pattern
+  # Argo. Pendant 24h les schedulers NestJS tournent en parallèle (idempotent
+  # INSERT ON CONFLICT). Désactivation côté NestJS via UI /admin/orchestrator
+  # après observation OK.
+  triggerMetarEu:
+    enabled: true
+    image: curlimages/curl:8.10.1
+    apiUrl: "http://maritime-api.maritime.svc.cluster.local.:3010"
+    sourceId: 199
+    secretName: "maritime-internal-token"
+  triggerHubeauDebits:
+    enabled: true
+    image: curlimages/curl:8.10.1
+    apiUrl: "http://maritime-api.maritime.svc.cluster.local.:3010"
+    sourceId: 244
+    secretName: "maritime-internal-token"
+  triggerFirmsModis:
+    enabled: true
+    image: curlimages/curl:8.10.1
+    apiUrl: "http://maritime-api.maritime.svc.cluster.local.:3010"
+    sourceId: 349
+    secretName: "maritime-internal-token"
+  triggerSatelliteModis:
+    enabled: true
+    image: curlimages/curl:8.10.1
+    apiUrl: "http://maritime-api.maritime.svc.cluster.local.:3010"
+    sourceId: 745
+    secretName: "maritime-internal-token"
+
   gsHealthcheck:
     enabled: true
     image: curlimages/curl:8.10.1

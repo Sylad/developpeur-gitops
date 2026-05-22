@@ -1,0 +1,50 @@
+{{- if .Values.workflows.triggerMetarEu.enabled }}
+# G12g-extension (2026-05-22) — metar-fetcher-eu (cron */30).
+# Pattern identique à trigger-usgs-earthquakes (cf
+# argo_workflows_orchestrator_migration_pattern.md).
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: trigger-metar-eu
+  namespace: argo
+spec:
+  schedules:
+    - "*/30 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
+  workflowSpec:
+    entrypoint: main
+    serviceAccountName: argo-workflow
+    activeDeadlineSeconds: 300
+    ttlStrategy:
+      secondsAfterCompletion: 86400
+    arguments:
+      parameters:
+        - name: api-url
+          value: {{ .Values.workflows.triggerMetarEu.apiUrl | quote }}
+        - name: source-id
+          value: {{ .Values.workflows.triggerMetarEu.sourceId | quote }}
+    templates:
+      - name: main
+        steps:
+          - - name: trigger
+              template: post-trigger
+      - name: post-trigger
+        retryStrategy:
+          limit: 2
+          backoff: { duration: "10s", factor: 2 }
+        container:
+          image: {{ .Values.workflows.triggerMetarEu.image | quote }}
+          command: [sh, -c]
+          envFrom:
+            - secretRef:
+                name: {{ .Values.workflows.triggerMetarEu.secretName | quote }}
+          args:
+            - |
+              URL="{{api-url}}/internal-trigger/sources/{{source-id}}"
+              curl -fsS -X POST -H "X-Service-Token: ${INTERNAL_TRIGGER_TOKEN}" "$URL"
+          resources:
+            requests: { cpu: "10m", memory: "16Mi" }
+            limits:   { cpu: "100m", memory: "64Mi" }
+{{- end }}
