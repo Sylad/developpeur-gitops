@@ -63,7 +63,7 @@ services:
   alertsEngine:
     enabled: true
     image: ghcr.io/sylad/aetherwx-alerts-engine
-    tag: sha-54d7070   # Sprint 0 rebuild dual-tag (2026-05-21)
+    tag: sha-dcb0613
     replicas: 1
     resources:
       requests: { cpu: "50m",  memory: "128Mi" }
@@ -89,7 +89,7 @@ services:
   lightningFetcher:
     enabled: true
     image: ghcr.io/sylad/aetherwx-lightning-fetcher
-    tag: sha-54d7070   # Sprint 0 rebuild dual-tag (2026-05-21)
+    tag: sha-dcb0613
     replicas: 1
     resources:
       requests: { cpu: "50m",  memory: "128Mi" }
