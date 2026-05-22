@@ -82,10 +82,12 @@ spec:
             - name: POSTGRES_JNDI_ENABLED
               value: "true"
             # ── GS admin credentials ──────────────────────────────────
+            # 2026-05-22 — fix sécu post code-review : password n'est plus
+            # en clair (repo PUBLIC). Lecture via Secret maritime-shared-env.
             - name: GEOSERVER_ADMIN_USER
-              value: admin
+              valueFrom: { secretKeyRef: { name: maritime-shared-env, key: GEOSERVER_ADMIN_USER } }
             - name: GEOSERVER_ADMIN_PASSWORD
-              value: geoserver
+              valueFrom: { secretKeyRef: { name: maritime-shared-env, key: GEOSERVER_ADMIN_PASSWORD } }
             # ── JVM tuning (cf mémoire geoserver_jvm_tuning_opts) ─────
             # 2026-05-19 — -Xmx lit `services.geoserver.heap` (single source
             # of truth). Le pod limit.memory est calculé heap + 1Gi en bas.

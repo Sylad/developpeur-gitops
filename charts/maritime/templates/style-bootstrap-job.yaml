@@ -37,10 +37,11 @@ spec:
           env:
             - name: GS_URL
               value: "http://geoserver:8080/geoserver"
+            # 2026-05-22 fix sécu : creds via Secret maritime-shared-env.
             - name: GS_USER
-              value: admin
+              valueFrom: { secretKeyRef: { name: maritime-shared-env, key: GEOSERVER_ADMIN_USER } }
             - name: GS_PASSWORD
-              value: geoserver
+              valueFrom: { secretKeyRef: { name: maritime-shared-env, key: GEOSERVER_ADMIN_PASSWORD } }
             - name: GS_WORKSPACE
               value: aetherwx
           resources:

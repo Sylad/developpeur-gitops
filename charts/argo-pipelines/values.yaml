@@ -25,12 +25,10 @@ workflows:
     enabled: true
     image: curlimages/curl:8.10.1
     gsUrl: "http://geoserver.maritime.svc.cluster.local.:8080/geoserver"
-    gsUser: "admin"
-    # Default GS password — match pattern existant des Jobs Helm (cf
-    # charts/maritime/templates/gs-workspace-rename-job.yaml). Idéalement à
-    # remplacer par un Secret stocké via sealed-secrets ou external-secrets,
-    # mais on garde la conv actuelle pour ne pas diverger du reste du repo.
-    gsPassword: "geoserver"
+    # 2026-05-22 fix sécu : creds lues depuis Secret K8s `gs-healthcheck-creds`
+    # dans namespace `argo` (créé hors gitops via kubectl create secret).
+    # Le password n'apparaît plus dans les manifests publiques.
+    secretName: "gs-healthcheck-creds"
     # Workspace + layer testés (sentinelles : si ces 2 sont OK, le coverage
     # GFS/SST data layer est probablement OK aussi).
     workspace: "aetherwx"

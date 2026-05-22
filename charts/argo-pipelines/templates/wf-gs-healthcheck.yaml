@@ -27,17 +27,14 @@ spec:
     activeDeadlineSeconds: 600
     ttlStrategy:
       secondsAfterCompletion: 86400
-    # Auth GS via env (admin:geoserver default — cf pattern Helm Jobs maritime).
-    # En G12f on migrera vers un Secret K8s + envFrom pour ne pas exposer
-    # le password en clair dans le manifest sync ArgoCD.
+    # 2026-05-22 — Auth GS via Secret K8s `gs-healthcheck-creds` (créé hors
+    # gitops, namespace argo). Le container `gs-rest` reçoit GS_USER et
+    # GS_PASSWORD via envFrom plutôt que workflow.parameters (qui apparaissait
+    # en clair dans `kubectl get cwf -o yaml`). Cf code-review SEC-1.
     arguments:
       parameters:
         - name: gs-url
           value: {{ .Values.workflows.gsHealthcheck.gsUrl | quote }}
-        - name: gs-user
-          value: {{ .Values.workflows.gsHealthcheck.gsUser | quote }}
-        - name: gs-password
-          value: {{ .Values.workflows.gsHealthcheck.gsPassword | quote }}
         - name: workspace
           value: {{ .Values.workflows.gsHealthcheck.workspace | quote }}
         - name: layer
@@ -74,12 +71,16 @@ spec:
           image: {{ .Values.workflows.gsHealthcheck.image | quote }}
           command: [sh, -c]
           # -f → fail sur 4xx/5xx (= échec workflow step → retry).
-          # -u user:pass → basic auth GS REST API.
+          # GS_USER/GS_PASSWORD injectés via envFrom secretRef (cf Secret
+          # gs-healthcheck-creds créé hors gitops, namespace argo).
+          envFrom:
+            - secretRef:
+                name: {{ .Values.workflows.gsHealthcheck.secretName | quote }}
           args:
             - |
               URL="{{`{{workflow.parameters.gs-url}}`}}{{`{{inputs.parameters.path}}`}}"
               echo "GET $URL"
-              curl -fsS -u "{{`{{workflow.parameters.gs-user}}`}}:{{`{{workflow.parameters.gs-password}}`}}" "$URL" -o /tmp/r.json
+              curl -fsS -u "${GS_USER}:${GS_PASSWORD}" "$URL" -o /tmp/r.json
               echo "OK · $(wc -c < /tmp/r.json) bytes"
           resources:
             requests: { cpu: "10m", memory: "16Mi" }
