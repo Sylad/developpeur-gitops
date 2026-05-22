@@ -16,3 +16,22 @@ workflows:
     # Alpine) ne résout pas alors que nslookup le fait. Bug musl-libc
     # vs ndots:5 + search domains. Cf debug 2026-05-22.
     targetUrl: "http://geoserver.maritime.svc.cluster.local.:8080/geoserver/web/"
+
+  # G12e (2026-05-22) — GS health check : 3 vérifications séquentielles sur
+  # GeoServer prod (version, workspace aetherwx, layer sst-daily). Si une
+  # étape foire → workflow Failed + visible dans UI. But : monitoring
+  # actif de la santé GS au-delà du livenessProbe basique du pod.
+  gsHealthcheck:
+    enabled: true
+    image: curlimages/curl:8.10.1
+    gsUrl: "http://geoserver.maritime.svc.cluster.local.:8080/geoserver"
+    gsUser: "admin"
+    # Default GS password — match pattern existant des Jobs Helm (cf
+    # charts/maritime/templates/gs-workspace-rename-job.yaml). Idéalement à
+    # remplacer par un Secret stocké via sealed-secrets ou external-secrets,
+    # mais on garde la conv actuelle pour ne pas diverger du reste du repo.
+    gsPassword: "geoserver"
+    # Workspace + layer testés (sentinelles : si ces 2 sont OK, le coverage
+    # GFS/SST data layer est probablement OK aussi).
+    workspace: "aetherwx"
+    layer: "sst-daily"

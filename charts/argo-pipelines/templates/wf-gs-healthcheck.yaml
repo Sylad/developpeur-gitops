@@ -1,0 +1,87 @@
+{{- if .Values.workflows.gsHealthcheck.enabled }}
+# G12e (2026-05-22) — GS health check workflow.
+# 3 vérifications séquentielles sur GeoServer prod :
+#   1. version : REST /about/version.json doit retourner 200
+#   2. workspace : REST /workspaces/<ws>.json doit retourner 200
+#   3. layer : REST /layers/<ws>:<layer>.json doit retourner 200
+#
+# Si une étape foire → workflow Failed visible UI argo-server.
+# Schedule : toutes les 15 min (équivalent uptime-monitoring léger).
+# Le mémo argo_workflows_study_2026_05_21.md flag ce pattern comme premier
+# vrai workflow utile : DAG explicite, auth GS, retry par étape — features
+# qu'on testait pas dans le hello-healthz MVP.
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: gs-healthcheck
+  namespace: argo
+spec:
+  schedules:
+    - "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 8
+  failedJobsHistoryLimit: 5
+  workflowSpec:
+    entrypoint: main
+    serviceAccountName: argo-workflow
+    activeDeadlineSeconds: 600
+    ttlStrategy:
+      secondsAfterCompletion: 86400
+    # Auth GS via env (admin:geoserver default — cf pattern Helm Jobs maritime).
+    # En G12f on migrera vers un Secret K8s + envFrom pour ne pas exposer
+    # le password en clair dans le manifest sync ArgoCD.
+    arguments:
+      parameters:
+        - name: gs-url
+          value: {{ .Values.workflows.gsHealthcheck.gsUrl | quote }}
+        - name: gs-user
+          value: {{ .Values.workflows.gsHealthcheck.gsUser | quote }}
+        - name: gs-password
+          value: {{ .Values.workflows.gsHealthcheck.gsPassword | quote }}
+        - name: workspace
+          value: {{ .Values.workflows.gsHealthcheck.workspace | quote }}
+        - name: layer
+          value: {{ .Values.workflows.gsHealthcheck.layer | quote }}
+    templates:
+      - name: main
+        steps:
+          - - name: check-version
+              template: gs-rest
+              arguments:
+                parameters:
+                  - name: path
+                    value: "/rest/about/version.json"
+          - - name: check-workspace
+              template: gs-rest
+              arguments:
+                parameters:
+                  - name: path
+                    value: "/rest/workspaces/{{`{{workflow.parameters.workspace}}`}}.json"
+          - - name: check-layer
+              template: gs-rest
+              arguments:
+                parameters:
+                  - name: path
+                    value: "/rest/layers/{{`{{workflow.parameters.workspace}}`}}:{{`{{workflow.parameters.layer}}`}}.json"
+
+      - name: gs-rest
+        inputs:
+          parameters: [{name: path}]
+        retryStrategy:
+          limit: 3
+          backoff: { duration: "10s", factor: 2 }
+        container:
+          image: {{ .Values.workflows.gsHealthcheck.image | quote }}
+          command: [sh, -c]
+          # -f → fail sur 4xx/5xx (= échec workflow step → retry).
+          # -u user:pass → basic auth GS REST API.
+          args:
+            - |
+              URL="{{`{{workflow.parameters.gs-url}}`}}{{`{{inputs.parameters.path}}`}}"
+              echo "GET $URL"
+              curl -fsS -u "{{`{{workflow.parameters.gs-user}}`}}:{{`{{workflow.parameters.gs-password}}`}}" "$URL" -o /tmp/r.json
+              echo "OK · $(wc -c < /tmp/r.json) bytes"
+          resources:
+            requests: { cpu: "10m", memory: "16Mi" }
+            limits:   { cpu: "100m", memory: "64Mi" }
+{{- end }}
