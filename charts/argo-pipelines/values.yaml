@@ -1,0 +1,15 @@
+# Argo Workflows pipelines pour aetherwx maritime-atlas.
+#
+# Toggle granulaire par workflow — `false` = pas créé (Helm template skip).
+# Permet d'activer pipeline par pipeline en gardant la rollback trivial
+# (toggle false + commit + push).
+workflows:
+  # G12d (2026-05-22) — MVP hello-world. Run toutes les 5min, log un curl
+  # vers /healthz d'un service maritime. But : valider que le pipeline
+  # Argo Workflows fonctionne end-to-end, sans toucher à de la prod data.
+  helloHealthz:
+    enabled: true
+    # Image curl légère utilisée pour les steps (~5Mi).
+    image: curlimages/curl:8.10.1
+    # Cible un service maritime healthy.
+    targetUrl: "http://api.maritime.svc.cluster.local:3010/health"

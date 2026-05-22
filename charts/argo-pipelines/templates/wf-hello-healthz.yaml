@@ -1,0 +1,73 @@
+{{- if .Values.workflows.helloHealthz.enabled }}
+# G12d (2026-05-22) — Hello world Argo Workflows.
+# But : valider que le pipeline end-to-end fonctionne (Helm install →
+# CronWorkflow declarative → controller trigger → pod step exec → log
+# visible UI argo-server) AVANT de migrer un vrai pipeline (GFS refresh,
+# GS bootstrap, etc. cf argo_workflows_study_2026_05_21.md cas A et D).
+#
+# Schedule : toutes les 5 minutes (debugging-friendly), passe à 1h après
+# validation. Le workflow loop 3 steps :
+#   1. echo hello timestamp
+#   2. curl service maritime healthz (lien réel avec l'app prod, sans
+#      side effect)
+#   3. echo bye
+#
+# Retention : 5 dernières runs visibles UI (auto-clean au-delà). Resources
+# ultra-légères (~10Mi par pod, ~1s par step).
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: hello-healthz
+  namespace: argo
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+  workflowSpec:
+    entrypoint: main
+    serviceAccountName: argo-workflow
+    activeDeadlineSeconds: 300
+    ttlStrategy:
+      secondsAfterCompletion: 86400   # 24h cleanup
+    templates:
+      - name: main
+        steps:
+          - - name: hello
+              template: echo
+              arguments:
+                parameters: [{name: msg, value: "hello from argo-workflows {{`{{workflow.creationTimestamp}}`}}"}]
+          - - name: healthz
+              template: curl
+              arguments:
+                parameters: [{name: url, value: {{ .Values.workflows.helloHealthz.targetUrl | quote }}}]
+          - - name: bye
+              template: echo
+              arguments:
+                parameters: [{name: msg, value: "bye from argo-workflows"}]
+
+      - name: echo
+        inputs:
+          parameters: [{name: msg}]
+        container:
+          image: {{ .Values.workflows.helloHealthz.image | quote }}
+          command: [sh, -c]
+          args: ["echo '{{`{{inputs.parameters.msg}}`}}'"]
+          resources:
+            requests: { cpu: "10m", memory: "16Mi" }
+            limits:   { cpu: "100m", memory: "64Mi" }
+
+      - name: curl
+        inputs:
+          parameters: [{name: url}]
+        retryStrategy:
+          limit: 2
+          backoff: { duration: "5s", factor: 2 }
+        container:
+          image: {{ .Values.workflows.helloHealthz.image | quote }}
+          command: [sh, -c]
+          args: ["curl -fsS '{{`{{inputs.parameters.url}}`}}' && echo OK"]
+          resources:
+            requests: { cpu: "10m", memory: "16Mi" }
+            limits:   { cpu: "100m", memory: "64Mi" }
+{{- end }}

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: argo-pipelines
+description: Argo Workflows pipelines pour aetherwx — DAG data météo et GS bootstrap (cf argo_workflows_study_2026_05_21.md)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
