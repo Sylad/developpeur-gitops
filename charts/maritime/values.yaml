@@ -231,7 +231,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-2b28973
+    tag: sha-56e39c1
     replicas: 1
     port: 80
     resources:
