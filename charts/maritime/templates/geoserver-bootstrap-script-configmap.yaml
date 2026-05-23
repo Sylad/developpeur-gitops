@@ -131,12 +131,26 @@ data:
     # Fix : sed in-place sur les fichiers gwc-layers AVANT que GS load.
     GWC_LAYERS_DIR="${GEOSERVER_DATA_DIR}/gwc-layers"
     if [ -d "$GWC_LAYERS_DIR" ]; then
+      # G42g (2026-05-23) — DELETE les fichiers stale `LayerInfoImpl-*.xml`
+      # qui référencent des layer IDs au vieux format XStream-serialized
+      # (`LayerInfoImpl--HEX:HEX:HEX`) qui n'existent plus dans le catalog
+      # JDBCConfig actuel (format moderne = `LayerInfo.{UUID}`).
+      # Symptôme : "Could not locate a layer or layer group with id
+      # LayerInfoImpl--... within GeoServer configuration, the GWC
+      # configuration seems to be out of synch".
+      # On garde LayerGroupInfoImpl-*.xml (layer groups encore utilisés)
+      # et LayerInfo.{UUID}.xml (format actuel).
+      stale_count=$(ls "$GWC_LAYERS_DIR"/LayerInfoImpl-*.xml 2>/dev/null | wc -l)
+      if [ "$stale_count" -gt 0 ]; then
+        echo "[cluster-bootstrap] removing $stale_count stale LayerInfoImpl-*.xml (old format)"
+        rm -f "$GWC_LAYERS_DIR"/LayerInfoImpl-*.xml
+      fi
+
+      # G42f (2026-05-23) — Rename maritime: → aetherwx: dans les
+      # fichiers restants (Sprint 0 workspace rename oubli).
       echo "[cluster-bootstrap] renaming maritime: → aetherwx: in gwc-layers/"
       count=$(grep -l ">maritime:" "$GWC_LAYERS_DIR"/*.xml 2>/dev/null | wc -l)
       if [ "$count" -gt 0 ]; then
-        # Sed dans chaque <name>maritime:X</name> → <name>aetherwx:X</name>.
-        # On garde les <id>LayerInfo.{UUID}</id> intacts (GS-side mapping
-        # to catalog par GUID, pas par name).
         sed -i 's|>maritime:|>aetherwx:|g' "$GWC_LAYERS_DIR"/*.xml
         echo "[cluster-bootstrap]   $count files updated"
       else
