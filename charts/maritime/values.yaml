@@ -132,7 +132,7 @@ services:
   weatherFetcher:
     enabled: true
     image: ghcr.io/sylad/aetherwx-weather-fetcher
-    tag: sha-54d7070   # Sprint 0 rebuild dual-tag (2026-05-21)
+    tag: sha-9d594e2   # G47 workspace via env var (2026-05-23)
     replicas: 1
     resources:
       requests: { cpu: "100m", memory: "256Mi" }
@@ -141,7 +141,7 @@ services:
   weatherFetcherArpege:
     enabled: true
     image: ghcr.io/sylad/aetherwx-weather-fetcher-arpege
-    tag: latest
+    tag: sha-9d594e2   # G47 workspace via env var (2026-05-23)
     replicas: 1
     resources:
       requests: { cpu: "100m", memory: "256Mi" }
@@ -150,7 +150,7 @@ services:
   weatherFetcherArome:
     enabled: true
     image: ghcr.io/sylad/aetherwx-weather-fetcher-arome
-    tag: latest
+    tag: sha-9d594e2   # G47 workspace via env var (2026-05-23)
     replicas: 1
     resources:
       requests: { cpu: "100m", memory: "256Mi" }
@@ -162,7 +162,7 @@ services:
   sstFetcher:
     enabled: true
     image: ghcr.io/sylad/aetherwx-sst-fetcher
-    tag: latest
+    tag: sha-9d594e2   # G47 workspace via env var (2026-05-23)
     replicas: 1
     resources:
       requests: { cpu: "50m",  memory: "128Mi" }
