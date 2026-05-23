@@ -81,6 +81,19 @@ data:
         -o /tmp/resp -w "  PUT %{http_code}\n"
     done
 
+    # G42 (2026-05-23) — Direct WMS Integration : route /geoserver/{ws}/wms
+    # vers GWC quand l'URL match une layer cachée. Sans ça, le frontend doit
+    # utiliser /geoserver/gwc/service/wms (BBOX strict grid-aligned, fragile).
+    # Avec Direct WMS Integration, le client garde son URL WMS normale ET
+    # bénéficie du cache GWC transparently.
+    log "→ Enable Direct WMS Integration (GWC global)"
+    GLOBAL_XML="<?xml version='1.0' encoding='UTF-8'?><global><enabled>true</enabled><wmtsCacheEnabled>true</wmtsCacheEnabled><wmsCacheEnabled>true</wmsCacheEnabled><tmsCacheEnabled>true</tmsCacheEnabled><wmtsTilesetsEnabled>true</wmtsTilesetsEnabled><directWMSIntegrationEnabled>true</directWMSIntegrationEnabled><securityEnabled>false</securityEnabled><cacheNonDefaultStyles>true</cacheNonDefaultStyles></global>"
+    curl -sk -u "$GS_AUTH" -X PUT \
+      -H "Content-Type: application/xml" \
+      -d "$GLOBAL_XML" \
+      "$GS_URL/gwc/rest/global" \
+      -o /tmp/global-resp -w "  PUT global %{http_code}\n"
+
     log "→ GWC reload (truncate stale cache, force re-fetch)"
     curl -sk -u "$GS_AUTH" -X POST "$GS_URL/gwc/rest/reload" \
       -o /dev/null -w "  POST %{http_code}\n" || true
