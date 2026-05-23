@@ -13,7 +13,7 @@ services:
     # undici fetch() qui timeoutait sur Alpine 3.23 musl libc en HTTPS
     # externe (USGS, METAR, hubeau-débits, etc.). https.request() marche
     # mais le code utilise fetch() partout → seul recours : base glibc.
-    tag: sha-282d92d
+    tag: sha-a6ac28a
     port: 3010
     replicas: 1
     resources:
@@ -115,7 +115,7 @@ services:
   gribParser:
     enabled: true
     image: ghcr.io/sylad/aetherwx-grib-parser
-    tag: sha-54d7070   # Sprint 0 rebuild dual-tag (2026-05-21)
+    tag: sha-b68671c   # 2026-05-23 fix workspace default 'aetherwx'
     replicas: 1
     resources:
       requests: { cpu: "100m", memory: "256Mi" }
