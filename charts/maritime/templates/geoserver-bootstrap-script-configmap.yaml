@@ -123,6 +123,46 @@ data:
     password=${POSTGRES_PASSWORD}
     EOF
 
+    # G42d (2026-05-23) — Force gwc-gs.xml avec Direct WMS Integration ON +
+    # EPSG:3857 dans defaultCachingGridSetIds AVANT le boot GS. Sinon le
+    # service GWC charge en mémoire l'ancien fichier (directWMSIntegration=false
+    # par défaut OSGeo). REST PUT /rest/resource/gwc-gs.xml renvoie 201 mais
+    # ne touche pas le fichier (GS sérialise sa GWCConfig en RAM par-dessus).
+    # Solution : écrire directement le fichier AVANT que GS le lise.
+    cat > "${GEOSERVER_DATA_DIR}/gwc-gs.xml" <<'GWCEOF'
+    <GeoServerGWCConfig>
+      <version>1.1.0</version>
+      <directWMSIntegrationEnabled>true</directWMSIntegrationEnabled>
+      <requireTiledParameter>false</requireTiledParameter>
+      <WMSCEnabled>true</WMSCEnabled>
+      <TMSEnabled>true</TMSEnabled>
+      <securityEnabled>false</securityEnabled>
+      <cacheLayersByDefault>true</cacheLayersByDefault>
+      <cacheNonDefaultStyles>true</cacheNonDefaultStyles>
+      <metaTilingX>4</metaTilingX>
+      <metaTilingY>4</metaTilingY>
+      <gutter>0</gutter>
+      <defaultCachingGridSetIds>
+        <string>EPSG:4326</string>
+        <string>EPSG:900913</string>
+        <string>EPSG:3857</string>
+      </defaultCachingGridSetIds>
+      <defaultCoverageCacheFormats>
+        <string>image/png</string>
+        <string>image/jpeg</string>
+      </defaultCoverageCacheFormats>
+      <defaultVectorCacheFormats>
+        <string>image/png</string>
+        <string>image/jpeg</string>
+      </defaultVectorCacheFormats>
+      <defaultOtherCacheFormats>
+        <string>image/png</string>
+        <string>image/jpeg</string>
+      </defaultOtherCacheFormats>
+    </GeoServerGWCConfig>
+    GWCEOF
+    echo "[cluster-bootstrap] gwc-gs.xml écrit avec directWMSIntegration=true + EPSG:3857"
+
     echo "[cluster-bootstrap] done, exec /opt/startup.sh"
     exec /opt/startup.sh "$@"
 {{- end }}
