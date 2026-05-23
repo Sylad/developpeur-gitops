@@ -202,17 +202,12 @@ services:
   # post-sync sur chaque cluster → 2 clusters restent synchros sans
   # drift entre REST manuel sur l'un et oubli sur l'autre.
   styleBootstrap:
-    # 2026-05-23 (G28) — Re-enabled : bug user "vent ne s'affiche pas
-    # wind-speed-rainbow.sld missing". Investigation : les SLDs custom
-    # (sst-direct, wind-speed-idw, wave-hs-only) n'ont jamais été uploadés
-    # sur GS de cette instance car le Job avait été désactivé 2026-05-17.
-    # Les LAYERS wind-speed/wave-hs existent mais leur defaultStyle pointe
-    # vers wind-speed-rainbow/wave-hs-rainbow .sld absents. Le Job va :
-    # 1. POST text/xml entry pour chaque style → register dans GS DB
-    # 2. PUT sld+xml body → upload le contenu SLD
-    # 3. PUT default-style sur les layers wind-speed/wave-hs/sst-daily
-    # Idempotent. Si backoffLimit fail, suppression manuelle Job ArgoCD.
-    enabled: true
+    # 2026-05-23 (G29) — Disabled : SLDs uploadés manuellement via
+    # kubectl exec curl directement dans le pod GS (sst-direct, wind-speed-idw,
+    # *-rainbow stubs). Image ghcr.io/sylad/aetherwx-style-bootstrap:sha-4c4a077
+    # n'existe pas → bloque ArgoCD PostSync en ImagePullBackOff. Re-enable
+    # quand l'image sera buildée (workflow .github/workflows/style-bootstrap.yml).
+    enabled: false
     image: ghcr.io/sylad/aetherwx-style-bootstrap
     tag: sha-4c4a077
 
