@@ -123,6 +123,27 @@ data:
     password=${POSTGRES_PASSWORD}
     EOF
 
+    # G42f (2026-05-23) — Sprint 0 workspace rename `maritime → aetherwx`
+    # a oublié les GWC tile layer configs. gwc-layers/*.xml contiennent
+    # encore <name>maritime:sst-daily</name> etc. Conséquence : GWC voit ces
+    # layers comme "non cachées" pour le NEW workspace alors qu'elles ont la
+    # même coverage GS sous-jacente. PUT REST échoue "already exists".
+    # Fix : sed in-place sur les fichiers gwc-layers AVANT que GS load.
+    GWC_LAYERS_DIR="${GEOSERVER_DATA_DIR}/gwc-layers"
+    if [ -d "$GWC_LAYERS_DIR" ]; then
+      echo "[cluster-bootstrap] renaming maritime: → aetherwx: in gwc-layers/"
+      count=$(grep -l ">maritime:" "$GWC_LAYERS_DIR"/*.xml 2>/dev/null | wc -l)
+      if [ "$count" -gt 0 ]; then
+        # Sed dans chaque <name>maritime:X</name> → <name>aetherwx:X</name>.
+        # On garde les <id>LayerInfo.{UUID}</id> intacts (GS-side mapping
+        # to catalog par GUID, pas par name).
+        sed -i 's|>maritime:|>aetherwx:|g' "$GWC_LAYERS_DIR"/*.xml
+        echo "[cluster-bootstrap]   $count files updated"
+      else
+        echo "[cluster-bootstrap]   no maritime: references found (already migrated)"
+      fi
+    fi
+
     # G42d (2026-05-23) — Force gwc-gs.xml avec Direct WMS Integration ON +
     # EPSG:3857 dans defaultCachingGridSetIds AVANT le boot GS. Sinon le
     # service GWC charge en mémoire l'ancien fichier (directWMSIntegration=false
