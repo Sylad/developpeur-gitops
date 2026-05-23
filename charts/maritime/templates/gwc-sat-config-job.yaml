@@ -110,6 +110,18 @@ data:
       "$GS_URL/gwc/rest/gridsets/EPSG:3857.xml" \
       -o /tmp/grid-resp -w "  PUT gridset EPSG:3857 %{http_code}\n"
 
+    # G45 (2026-05-23) — Enable GWC DiskQuota pour borner la taille du
+    # cache disque. PVC geoserver-data = 5 GB ; quota = 2 GB max → marge
+    # 3 GB pour catalog + SLDs + autres. Eviction LFU (least frequently
+    # used) toutes les 10 min. Évite remplissage progressif.
+    log "→ Enable GWC DiskQuota (2 GB max, LFU eviction)"
+    DISKQUOTA_XML='<?xml version="1.0" encoding="UTF-8"?><org.geowebcache.diskquota.DiskQuotaConfig><enabled>true</enabled><cacheCleanUpFrequency>10</cacheCleanUpFrequency><cacheCleanUpUnits>MINUTES</cacheCleanUpUnits><maxConcurrentCleanUps>2</maxConcurrentCleanUps><globalExpirationPolicyName>LFU</globalExpirationPolicyName><globalQuota><id>0</id><bytes>2147483648</bytes></globalQuota></org.geowebcache.diskquota.DiskQuotaConfig>'
+    curl -sk -u "$GS_AUTH" -X PUT \
+      -H "Content-Type: application/xml" \
+      -d "$DISKQUOTA_XML" \
+      "$GS_URL/gwc/rest/diskquota.xml" \
+      -o /tmp/quota-resp -w "  PUT diskquota %{http_code}\n"
+
     log "→ GS REST reload (apply gwc-gs.xml changes)"
     curl -sk -u "$GS_AUTH" -X POST "$GS_URL/rest/reload" \
       -o /dev/null -w "  POST reload %{http_code}\n" || true
