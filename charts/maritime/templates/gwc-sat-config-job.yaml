@@ -81,22 +81,37 @@ data:
         -o /tmp/resp -w "  PUT %{http_code}\n"
     done
 
-    # G42 (2026-05-23) — Direct WMS Integration : route /geoserver/{ws}/wms
-    # vers GWC quand l'URL match une layer cachée. Sans ça, le frontend doit
-    # utiliser /geoserver/gwc/service/wms (BBOX strict grid-aligned, fragile).
-    # Avec Direct WMS Integration, le client garde son URL WMS normale ET
-    # bénéficie du cache GWC transparently.
-    log "→ Enable Direct WMS Integration (GWC global)"
-    GLOBAL_XML="<?xml version='1.0' encoding='UTF-8'?><global><enabled>true</enabled><wmtsCacheEnabled>true</wmtsCacheEnabled><wmsCacheEnabled>true</wmsCacheEnabled><tmsCacheEnabled>true</tmsCacheEnabled><wmtsTilesetsEnabled>true</wmtsTilesetsEnabled><directWMSIntegrationEnabled>true</directWMSIntegrationEnabled><securityEnabled>false</securityEnabled><cacheNonDefaultStyles>true</cacheNonDefaultStyles></global>"
+    # G42c (2026-05-23) — Direct WMS Integration via /rest/resource/gwc-gs.xml.
+    # Le PUT précédent sur /gwc/rest/global ne touchait PAS le bon fichier
+    # (vérifié in-pod : directWMSIntegrationEnabled resté false). La conf GS-side
+    # de GWC est dans data_dir/gwc-gs.xml (NOT data_dir/gwc/geowebcache.xml).
+    # Endpoint correct = /rest/resource/{path} qui fait du file CRUD sur data_dir.
+    log "→ Set directWMSIntegrationEnabled=true via /rest/resource/gwc-gs.xml"
+    GWC_GS_XML='<?xml version="1.0" encoding="UTF-8"?><GeoServerGWCConfig><version>1.1.0</version><directWMSIntegrationEnabled>true</directWMSIntegrationEnabled><requireTiledParameter>false</requireTiledParameter><WMSCEnabled>true</WMSCEnabled><TMSEnabled>true</TMSEnabled><securityEnabled>false</securityEnabled><cacheLayersByDefault>true</cacheLayersByDefault><cacheNonDefaultStyles>true</cacheNonDefaultStyles><metaTilingX>4</metaTilingX><metaTilingY>4</metaTilingY><gutter>0</gutter><defaultCachingGridSetIds><string>EPSG:4326</string><string>EPSG:900913</string><string>EPSG:3857</string></defaultCachingGridSetIds><defaultCoverageCacheFormats><string>image/png</string><string>image/jpeg</string></defaultCoverageCacheFormats><defaultVectorCacheFormats><string>image/png</string><string>image/jpeg</string></defaultVectorCacheFormats><defaultOtherCacheFormats><string>image/png</string><string>image/jpeg</string></defaultOtherCacheFormats></GeoServerGWCConfig>'
     curl -sk -u "$GS_AUTH" -X PUT \
       -H "Content-Type: application/xml" \
-      -d "$GLOBAL_XML" \
-      "$GS_URL/gwc/rest/global" \
-      -o /tmp/global-resp -w "  PUT global %{http_code}\n"
+      -d "$GWC_GS_XML" \
+      "$GS_URL/rest/resource/gwc-gs.xml" \
+      -o /tmp/cfg-resp -w "  PUT gwc-gs.xml %{http_code}\n"
+
+    # G42c — créer le gridset EPSG:3857 (alias de 900913, mêmes coords mais
+    # code OGC officiel). MapLibre envoie SRS=EPSG:3857 → matching gridset
+    # requis pour que Direct WMS Integration route vers GWC.
+    log "→ Create gridset EPSG:3857 (alias 900913)"
+    GRIDSET_XML='<?xml version="1.0" encoding="UTF-8"?><gridSet><name>EPSG:3857</name><srs><number>3857</number></srs><extent><coords><double>-20037508.34</double><double>-20037508.34</double><double>20037508.34</double><double>20037508.34</double></coords></extent><alignTopLeft>false</alignTopLeft><scaleDenominators><double>5.590822640287176E8</double><double>2.7954113201435876E8</double><double>1.3977056600717938E8</double><double>6.988528300358969E7</double><double>3.4942641501794845E7</double><double>1.7471320750897422E7</double><double>8735660.375448711</double><double>4367830.187724356</double><double>2183915.093862178</double><double>1091957.546931089</double><double>545978.7734655446</double><double>272989.3867327723</double><double>136494.69336638614</double><double>68247.34668319307</double><double>34123.673341596535</double><double>17061.836670798268</double><double>8530.918335399134</double><double>4265.459167699567</double><double>2132.7295838497835</double><double>1066.3647919248917</double><double>533.1823959624459</double><double>266.59119798122293</double><double>133.29559899061147</double><double>66.64779949530573</double><double>33.32389974765287</double><double>16.661949873826433</double><double>8.330974936913217</double><double>4.165487468456608</double><double>2.082743734228304</double><double>1.041371867114152</double><double>0.520685933557076</double></scaleDenominators><metersPerUnit>1.0</metersPerUnit><pixelSize>2.8E-4</pixelSize><tileHeight>256</tileHeight><tileWidth>256</tileWidth><yCoordinateFirst>false</yCoordinateFirst></gridSet>'
+    curl -sk -u "$GS_AUTH" -X PUT \
+      -H "Content-Type: application/xml" \
+      -d "$GRIDSET_XML" \
+      "$GS_URL/gwc/rest/gridsets/EPSG:3857.xml" \
+      -o /tmp/grid-resp -w "  PUT gridset EPSG:3857 %{http_code}\n"
+
+    log "→ GS REST reload (apply gwc-gs.xml changes)"
+    curl -sk -u "$GS_AUTH" -X POST "$GS_URL/rest/reload" \
+      -o /dev/null -w "  POST reload %{http_code}\n" || true
 
     log "→ GWC reload (truncate stale cache, force re-fetch)"
     curl -sk -u "$GS_AUTH" -X POST "$GS_URL/gwc/rest/reload" \
-      -o /dev/null -w "  POST %{http_code}\n" || true
+      -o /dev/null -w "  POST gwc reload %{http_code}\n" || true
 
     log "✓ done"
 ---
