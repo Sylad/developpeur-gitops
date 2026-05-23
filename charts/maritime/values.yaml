@@ -202,13 +202,17 @@ services:
   # post-sync sur chaque cluster → 2 clusters restent synchros sans
   # drift entre REST manuel sur l'un et oubli sur l'autre.
   styleBootstrap:
-    # Désactivé 2026-05-17 sprint refacto GS v3 — depuis l'archi JDBCConfig
-    # (catalog en DB pg-catalog/geoserver), les styles SLD sont stockés via
-    # JDBCStore directement en DB et ne nécessitent plus un Job PostSync
-    # qui les push via REST. Le Job avait atteint son backoffLimit et faisait
-    # péter le sync ArgoCD de l'app maritime. À supprimer définitivement du
-    # repo (chart maritime template + service maritime-atlas) en Phase E.
-    enabled: false
+    # 2026-05-23 (G28) — Re-enabled : bug user "vent ne s'affiche pas
+    # wind-speed-rainbow.sld missing". Investigation : les SLDs custom
+    # (sst-direct, wind-speed-idw, wave-hs-only) n'ont jamais été uploadés
+    # sur GS de cette instance car le Job avait été désactivé 2026-05-17.
+    # Les LAYERS wind-speed/wave-hs existent mais leur defaultStyle pointe
+    # vers wind-speed-rainbow/wave-hs-rainbow .sld absents. Le Job va :
+    # 1. POST text/xml entry pour chaque style → register dans GS DB
+    # 2. PUT sld+xml body → upload le contenu SLD
+    # 3. PUT default-style sur les layers wind-speed/wave-hs/sst-daily
+    # Idempotent. Si backoffLimit fail, suppression manuelle Job ArgoCD.
+    enabled: true
     image: ghcr.io/sylad/aetherwx-style-bootstrap
     tag: sha-4c4a077
 
