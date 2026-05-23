@@ -30,6 +30,10 @@ services:
       # Secret maritime-shared-env (not commit). Repo PUBLIC → never put
       # password in clair ici. Cf code-review SEC-1.
       GEOSERVER_WORKSPACE: aetherwx  # Sprint 0 hotfix URL paths /geoserver/aetherwx/ (2026-05-21)
+      # 2026-05-23 — override le GRIB_PARSER_URL hérité du secret maritime-shared-env
+      # (= http://192.168.1.26:8500 d'avant la migration K8s). En cluster il
+      # faut viser le service grib-parser.maritime.svc.cluster.local:8500.
+      GRIB_PARSER_URL: "http://grib-parser:8500"
       PALETTE_LIMIT_PER_USER: "5"
       ADMIN_EMAIL: sylvain.ladoire@gmail.com
       ADMIN_USERNAME: sylvain
