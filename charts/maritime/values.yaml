@@ -201,7 +201,11 @@ services:
     heap: "8g"
     resources:
       requests: { cpu: "500m", memory: "2Gi" }
-      limits:   { cpu: "2" }
+      # 2026-05-23 — bump 2 → 4 cores : GS pegged 1994m/2000m pendant
+      # animations + multi-tile concurrent (bicubic = heavy CPU). Causait
+      # 504 sporadiques côté browser ("seul le curseur bouge" pendant
+      # play). Mini-Blue node = 16 cores, marge confortable.
+      limits:   { cpu: "4" }
       # limits.memory est calculé dans le template = heap + 1Gi.
 
   # ─── Style bootstrap (ArgoCD PostSync Job) ────────────────────────
