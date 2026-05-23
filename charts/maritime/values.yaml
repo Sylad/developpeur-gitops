@@ -192,9 +192,13 @@ services:
     # Format `heap` : "Ng" entier (ex "4g", "6g", "8g"). Ne pas mettre "6.5g"
     # ou "6144m" — le template parse via trimSuffix "g" + int.
     #
-    # Mini-Blue 15Gi RAM total : heap 6g → pod limit 7Gi → laisse 8Gi pour
+    # Mini-Blue 15Gi RAM total : heap 8g → pod limit 9Gi → laisse 6Gi pour
     # pg-data + rmq + frontend + ais-decoder + alerts + autres pods.
-    heap: "6g"
+    #
+    # 2026-05-23 — bump 6g → 8g après OOM-kill (pod restart 1× en 11h)
+    # + saturation perm 100% (7146Mi/7168Mi) → GC thrashing visible côté user
+    # ("perfs GS molles" alors que client 144fps). Mini-Blue 15Gi a la marge.
+    heap: "8g"
     resources:
       requests: { cpu: "500m", memory: "2Gi" }
       limits:   { cpu: "2" }
