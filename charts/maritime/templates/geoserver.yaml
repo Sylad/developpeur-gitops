@@ -127,11 +127,14 @@ spec:
               {{- toYaml .Values.services.geoserver.resources.requests | nindent 14 }}
             limits:
               {{- toYaml .Values.services.geoserver.resources.limits | nindent 14 }}
-              # 2026-05-19 — limits.memory dérivé automatiquement de heap + 1Gi
+              # 2026-05-19 — limits.memory dérivé automatiquement de heap + 3Gi
               # (marge off-heap pour metaspace + JAI native + threads). Garantit
               # que K8s OOMKiller ne tue PAS le pod avant que la JVM ait
               # vraiment dépassé son heap budget.
-              memory: {{ printf "%dGi" (add (.Values.services.geoserver.heap | trimSuffix "g" | int) 1) }}
+              # 2026-05-23 — bump marge 1Gi → 3Gi : avec CPU 4 cores + bicubic
+              # concurrent, observé OOMKilled (6 restarts en 95min). 3Gi off-heap
+              # = ~50% native du heap, marge confortable. Mini-Blue 15Gi a la place.
+              memory: {{ printf "%dGi" (add (.Values.services.geoserver.heap | trimSuffix "g" | int) 3) }}
           startupProbe:
             httpGet:
               path: /geoserver/index.html
