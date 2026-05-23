@@ -231,6 +231,7 @@ services:
   gsWorkspaceRename:
     enabled: true
 
+
   # ─── Frontend Angular SPA + nginx (AetherWX brand) ────────────────
   frontend:
     enabled: true
