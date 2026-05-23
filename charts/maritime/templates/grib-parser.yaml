@@ -20,6 +20,13 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8500
+          # 2026-05-23 — GEOSERVER_ADMIN_USER + GEOSERVER_ADMIN_PASSWORD requis
+          # pour POST /rest/workspaces/<ws>/coveragestores. Sans, fallback
+          # ('admin','geoserver') → HTTP 401 Unauthorized GS REST.
+          envFrom:
+            - secretRef:
+                name: maritime-shared-env
+                optional: false
           volumeMounts:
             # 2026-05-19 APEX Satellites Phase 4 — grib-parser doit pouvoir
             # écrire les GeoTIFFs dans le volume partagé avec GeoServer.
