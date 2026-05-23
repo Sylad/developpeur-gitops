@@ -129,6 +129,18 @@ data:
     # layers comme "non cachées" pour le NEW workspace alors qu'elles ont la
     # même coverage GS sous-jacente. PUT REST échoue "already exists".
     # Fix : sed in-place sur les fichiers gwc-layers AVANT que GS load.
+    # G46 (2026-05-23) — Sprint 0 workspace rename a renommé le workspace
+    # dans le catalog (JDBCConfig DB) mais oublié les directories disque.
+    # `workspaces/maritime/` reste avec d'anciens layer.xml référençant des
+    # LayerInfoImpl IDs qui n'existent plus dans le catalog actuel.
+    # Symptôme : "Could not locate a layer or layer group with id
+    # LayerInfoImpl--HEX:HEX:HEX within GeoServer configuration".
+    OLD_WS="${GEOSERVER_DATA_DIR}/workspaces/maritime"
+    if [ -d "$OLD_WS" ]; then
+      echo "[cluster-bootstrap] removing stale workspaces/maritime/ dir (Sprint 0 leftover)"
+      rm -rf "$OLD_WS"
+    fi
+
     GWC_LAYERS_DIR="${GEOSERVER_DATA_DIR}/gwc-layers"
     if [ -d "$GWC_LAYERS_DIR" ]; then
       # G42g (2026-05-23) — DELETE les fichiers stale `LayerInfoImpl-*.xml`
