@@ -136,15 +136,17 @@ spec:
             httpGet:
               path: /geoserver/index.html
               port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 10
-            failureThreshold: 60
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            timeoutSeconds: 15
+            failureThreshold: 40
           livenessProbe:
             httpGet:
               path: /geoserver/index.html
               port: 8080
-            periodSeconds: 30
-            timeoutSeconds: 10
+            periodSeconds: 60
+            timeoutSeconds: 30
+            failureThreshold: 5
       volumes:
         - name: data
           persistentVolumeClaim:
