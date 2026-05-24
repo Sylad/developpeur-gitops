@@ -1,0 +1,113 @@
+{{- if .Values.coverageS3Migration.enabled }}
+# Maritime — Coverage S3 migration (G59)
+#
+# 2026-05-24 — Sprint cluster-ready : copie le contenu de
+# /coverage (PVC Longhorn RWX) vers le bucket SeaweedFS maritime-coverage.
+# Puis reconfigure les CoverageStoreInfo url=file:///coverage/X →
+# url=s3://maritime-coverage/X. Re-index les granules via REST GS.
+#
+# Pré-requis :
+#   - G57 SeaweedFS déployé + bucket maritime-coverage créé
+#   - G58 GWC S3 blobstore validé (peut être skip mais conseillé)
+#
+# ⚠ Phase risquée : data move. Faire BACKUP du PVC Longhorn avant
+# (snapshot ou rsync vers NAS).
+#
+# Idempotent : `mc mirror` --overwrite false skip déjà-copiés. Le SQL
+# UPDATE check OLD pattern avant remplacement.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: maritime-coverage-s3-migration-script
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "4"
+data:
+  migrate.sh: |
+    #!/bin/sh
+    set -eu
+    apk add --no-cache postgresql-client curl
+    log() { echo "[$(date -u -Iseconds)] $*"; }
+
+    log "→ mc alias setup"
+    mc alias set sweed "$S3_ENDPOINT" "$S3_ACCESS_KEY" "$S3_SECRET_KEY" --api S3v4
+
+    log "→ mirror /coverage → sweed/maritime-coverage"
+    mc mirror --overwrite=false --quiet /coverage/ sweed/maritime-coverage/ 2>&1 | tail -20
+    log "  copy done"
+
+    log "→ verify bucket"
+    mc ls sweed/maritime-coverage/ | head -20
+
+    log "→ rewrite CoverageStoreInfo url file:/// → s3://"
+    PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -U "$PG_USER" -d maritime -c "
+      UPDATE geoserver.object SET blob = REPLACE(blob, 'file:///coverage/', 's3://maritime-coverage/')
+      WHERE id IN (
+        SELECT o.id FROM geoserver.object o JOIN geoserver.type t ON o.type_id=t.oid
+        WHERE t.typename='org.geoserver.catalog.CoverageStoreInfo'
+          AND o.blob LIKE '%file:///coverage/%');"
+    PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -U "$PG_USER" -d maritime -c "
+      UPDATE geoserver.object_property SET value = REPLACE(value, 'file:///coverage/', 's3://maritime-coverage/')
+      WHERE property_type IN (SELECT oid FROM geoserver.property_type WHERE name='URL')
+        AND value LIKE 'file:///coverage/%';"
+
+    log "→ POST /rest/reload + recommend pod restart"
+    curl -sk -u "${GS_USER}:${GS_PASSWORD}" -X POST "${GS_URL}/rest/reload" -o /dev/null -w "  reload %{http_code}\n"
+    log "✓ done — restart GS pod via 'kubectl rollout restart deployment/geoserver' to fully apply"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: maritime-coverage-s3-migration
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  ttlSecondsAfterFinished: 600
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: minio/mc:RELEASE.2024-11-21T17-21-54Z
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "/scripts/migrate.sh"]
+          env:
+            - name: GS_URL
+              value: "http://geoserver:8080/geoserver"
+            - name: GS_USER
+              valueFrom: { secretKeyRef: { name: maritime-shared-env, key: GEOSERVER_ADMIN_USER } }
+            - name: GS_PASSWORD
+              valueFrom: { secretKeyRef: { name: maritime-shared-env, key: GEOSERVER_ADMIN_PASSWORD } }
+            - name: S3_ENDPOINT
+              value: "http://seaweedfs-filer:8333"
+            - name: S3_ACCESS_KEY
+              valueFrom: { secretKeyRef: { name: maritime-seaweedfs-s3, key: S3_ACCESS_KEY } }
+            - name: S3_SECRET_KEY
+              valueFrom: { secretKeyRef: { name: maritime-seaweedfs-s3, key: S3_SECRET_KEY } }
+            - name: PG_HOST
+              value: "pg-catalog-rw"
+            - name: PG_USER
+              valueFrom: { secretKeyRef: { name: pg-catalog-app, key: username } }
+            - name: PG_PASSWORD
+              valueFrom: { secretKeyRef: { name: pg-catalog-app, key: password } }
+          volumeMounts:
+            - { name: coverage, mountPath: /coverage, readOnly: true }
+            - { name: script, mountPath: /scripts }
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits:   { cpu: "1000m", memory: "512Mi" }
+      volumes:
+        - name: coverage
+          persistentVolumeClaim:
+            claimName: maritime-coverage
+        - name: script
+          configMap:
+            name: maritime-coverage-s3-migration-script
+            defaultMode: 0755
+{{- end }}

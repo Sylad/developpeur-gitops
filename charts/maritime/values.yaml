@@ -277,7 +277,39 @@ wmsCascadeBootstrap:
 # sat-airs-*) vers workspace dédié `aetherwx-sat`. GetCap principal
 # 4× plus rapide (passe de 36s cold à ~5-10s estimé).
 satWorkspaceSplit:
+  # G56 — Job désactivé après exécution manuelle réussie (2026-05-24).
+  # Migration SQL idempotente : si fresh deploy nécessite re-run, set true
+  # + helm-template extract ConfigMap + apply manuellement (ArgoCD hook
+  # lifecycle race + ConfigMap deletion sur BeforeHookCreation policy).
+  enabled: false
+
+# ─── SeaweedFS — storage S3-compatible distribué (G57) ──────────────
+# Sprint cluster-ready : pré-requis pour G58 (GWC S3 blobstore) puis
+# G59 (coverage migration) puis G60 (3 replicas GS + JMS sync).
+# Single-node homelab : master + volume + filer en 1 replica chacun.
+# Bucket auto-créés via PostSync Job : maritime-gwc-tiles + maritime-coverage.
+seaweedfs:
   enabled: true
+  volumeSize: 100Gi
+  # Creds S3 interne au cluster (jamais exposé internet, mais à override
+  # via SealedSecret quand on aura un secrets-manager prod).
+  s3AccessKey: maritime
+  s3SecretKey: maritime-s3-homelab-2026
+
+# ─── GWC S3 blobstore (G58) ─────────────────────────────────────────
+# Configure GWC pour cacher les tuiles dans SeaweedFS bucket
+# `maritime-gwc-tiles` au lieu de l'emptyDir per-pod. Pré-requis : G57
+# déployé (filer S3 :8333 ready). Désactivé par défaut pour rollout
+# progressif — enable une fois G57 stable.
+gwcS3Blobstore:
+  enabled: false
+
+# ─── Coverage S3 migration (G59) ────────────────────────────────────
+# Copie /coverage PVC → SeaweedFS bucket maritime-coverage + reconfigure
+# CoverageStoreInfo url=s3://. Phase risquée data move. À enabler après
+# backup PVC + G58 stable.
+coverageS3Migration:
+  enabled: false
 
 # ─── GWC sat config (PostSync Job) ──────────────────────────────────
 # Active le cache GWC sur les layers satellite avec TTL 1h + regex filter
