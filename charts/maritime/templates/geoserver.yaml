@@ -59,13 +59,22 @@ spec:
         # blobs migrés en SQL UPDATE.
         checksum/sat-workspace-split: {{ include (print $.Template.BasePath "/sat-workspace-split-job.yaml") . | sha256sum }}
     spec:
-      # 2026-05-18 (audit APEX 08 post-sprint) — reset explicite à `default`
-      # pour purger un éventuel `geoserver-hz` orphelin laissé par l'ancien
-      # sprint Hazelcast K8s discovery (cf. revert c559b5a). Sans cette ligne,
-      # ArgoCD applique le template mais ne touche pas au serviceAccountName
-      # déjà présent dans le Deployment cluster → pods bloqués à la création
-      # (FailedCreate "serviceaccount geoserver-hz not found").
-      serviceAccountName: default
+      # G60 (2026-05-24) — serviceAccount `geoserver-hz` quand cluster.enabled,
+      # sinon `default`. Le SA + Role créés par geoserver-hz-cluster.yaml
+      # donnent permission list pods pour Hazelcast K8s discovery.
+      serviceAccountName: {{ if .Values.geoserverCluster.enabled }}geoserver-hz{{ else }}default{{ end }}
+      {{- if and (.Values.geoserverCluster.enabled) (gt (int .Values.services.geoserver.replicas) 1) }}
+      # G60 — spread pods sur plusieurs nodes si possible (mini-blue single-node
+      # = no-op, mais propre pour multi-node migration future).
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels: { app: geoserver }
+                topologyKey: kubernetes.io/hostname
+      {{- end }}
       imagePullSecrets:
         - name: regcred
       containers:
@@ -130,6 +139,14 @@ spec:
               value: "true"
             - name: JAI_TIFF_NATIVE_ACCELERATION
               value: "true"
+            {{- if .Values.geoserverCluster.enabled }}
+            # G60 — Hazelcast K8s discovery : need namespace via fieldRef.
+            # ${HZ_K8S_NAMESPACE} substitué dans hazelcast.xml par Hazelcast 5.x.
+            - name: HZ_K8S_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            {{- end }}
           volumeMounts:
             - name: data
               mountPath: /opt/geoserver_data
@@ -138,6 +155,15 @@ spec:
               readOnly: true
             - name: coverage-data
               mountPath: /coverage
+            {{- if .Values.geoserverCluster.enabled }}
+            # G60 — hazelcast.xml + cluster.properties pour gs-hz-cluster
+            - name: hz-config
+              mountPath: /opt/geoserver_data/cluster/cluster.properties
+              subPath: cluster.properties
+            - name: hz-config
+              mountPath: /opt/geoserver_data/cluster/hazelcast.xml
+              subPath: hazelcast.xml
+            {{- end }}
           resources:
             requests:
               {{- toYaml .Values.services.geoserver.resources.requests | nindent 14 }}
@@ -170,6 +196,11 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: geoserver-data
+        {{- if .Values.geoserverCluster.enabled }}
+        - name: hz-config
+          configMap:
+            name: geoserver-hz-config
+        {{- end }}
         - name: bootstrap-script
           configMap:
             name: geoserver-bootstrap

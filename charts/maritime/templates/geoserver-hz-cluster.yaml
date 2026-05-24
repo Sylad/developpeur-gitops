@@ -1,0 +1,104 @@
+{{- if .Values.geoserverCluster.enabled }}
+# Maritime — GeoServer Hazelcast cluster (G60)
+#
+# 2026-05-24 — Sprint cluster-ready : active la synchro catalog
+# cross-replica via Hazelcast K8s gossip (déjà baké dans l'image custom
+# via gs-hz-cluster, cf maritime-atlas/geoserver/Dockerfile hz-builder).
+#
+# Architecture :
+#   N replicas GS → discovery K8s API via Hazelcast 5.x kubernetes plugin
+#   → cluster.properties enabled=true + sync_method=reload
+#   → catalog mutation REST sur replica X → broadcast event → tous reload
+#
+# Pré-requis :
+#   - G57 SeaweedFS + G58 GWC S3 blobstore (sinon chaque replica re-cache à froid)
+#   - PVC coverage RWX (Longhorn) pour shared GeoTIFF (avant G59 migration S3)
+#
+# Sécu : ServiceAccount dédié `geoserver-hz` avec Role qui permet seulement
+# `list pods` dans le namespace (Hazelcast K8s discovery requirement).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: geoserver-hz
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: geoserver-hz-pod-reader
+  namespace: {{ .Release.Namespace }}
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "endpoints", "services"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: geoserver-hz-pod-reader
+  namespace: {{ .Release.Namespace }}
+subjects:
+  - kind: ServiceAccount
+    name: geoserver-hz
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: Role
+  name: geoserver-hz-pod-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+# Headless Service pour discovery Hazelcast K8s.
+# clusterIP: None → DNS retourne les IPs de tous les pods → Hazelcast
+# 5.x utilise pour gossip TCP/5701 entre eux.
+apiVersion: v1
+kind: Service
+metadata:
+  name: geoserver-hz
+  namespace: {{ .Release.Namespace }}
+spec:
+  clusterIP: None
+  selector: { app: geoserver }
+  ports:
+    - { name: hazelcast, port: 5701, targetPort: 5701 }
+---
+# ConfigMap hazelcast.xml + cluster.properties.
+# Source : maritime-atlas/geoserver/cluster/{hazelcast.xml,cluster.properties}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: geoserver-hz-config
+  namespace: {{ .Release.Namespace }}
+data:
+  hazelcast.xml: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <hazelcast xmlns="http://www.hazelcast.com/schema/config"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://www.hazelcast.com/schema/config
+                                   https://hazelcast.com/schema/config/hazelcast-config-5.3.xsd">
+      <cluster-name>gsEventCluster</cluster-name>
+      <instance-name>gsEventCluster</instance-name>
+      <properties>
+        <property name="hazelcast.logging.type">log4j2</property>
+        <property name="hazelcast.shutdownhook.enabled">false</property>
+      </properties>
+      <network>
+        <port auto-increment="false">5701</port>
+        <join>
+          <multicast enabled="false"/>
+          <tcp-ip enabled="false"/>
+          <kubernetes enabled="true">
+            <service-name>geoserver-hz</service-name>
+            <namespace>${HZ_K8S_NAMESPACE}</namespace>
+            <resolve-not-ready-addresses>true</resolve-not-ready-addresses>
+          </kubernetes>
+        </join>
+        <interfaces enabled="false"/>
+      </network>
+    </hazelcast>
+  cluster.properties: |
+    enabled=true
+    sync_method=reload
+    sync_delay=5
+    acktimeout=2000
+    session_sharing=false
+    session_sticky=false
+{{- end }}

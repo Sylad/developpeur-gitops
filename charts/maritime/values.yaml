@@ -311,6 +311,15 @@ gwcS3Blobstore:
 coverageS3Migration:
   enabled: false
 
+# ─── GeoServer Hazelcast cluster (G60) ──────────────────────────────
+# Active la synchro catalog cross-replica via Hazelcast K8s discovery
+# (plugin gs-hz-cluster déjà baké dans l'image custom). Désactivé par
+# défaut pour rollout progressif. Enable + bump replicas une fois G58
+# (GWC S3) + G59 (coverage S3) validés sinon chaque replica re-cache
+# à froid.
+geoserverCluster:
+  enabled: false
+
 # ─── GWC sat config (PostSync Job) ──────────────────────────────────
 # Active le cache GWC sur les layers satellite avec TTL 1h + regex filter
 # TIME pour cacher chaque jour scrubable. Évite le re-render à chaque
