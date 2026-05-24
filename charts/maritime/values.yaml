@@ -174,7 +174,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/aetherwx-geoserver
-    tag: sha-8d9d485
+    tag: sha-3523939
     # 2026-05-17 soir : scale-down à 1 replica après bug "layers disparaissent"
     # (Sylvain "laisse qu'un réplicas, c'est lamentable, mais pour l'instant
     # on gère que dalle"). Cause profonde = drift entre les 2 pods GS quand
