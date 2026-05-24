@@ -84,26 +84,10 @@ data:
 
     # ─── 4. SQL UPDATE on 7 CoverageStoreInfo + 7 CoverageInfo ──────
     log "→ migrate CoverageStoreInfo workspace refs"
-    PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -U "$PG_USER" -d maritime <<SQL
-UPDATE geoserver.object SET blob = REPLACE(blob, '<id>$OLD_WS</id>', '<id>$WS_BLOB</id>')
-WHERE id IN (
-  SELECT o.id FROM geoserver.object o JOIN geoserver.type t ON o.type_id=t.oid
-  WHERE t.typename='org.geoserver.catalog.CoverageStoreInfo'
-    AND (o.blob LIKE '%>sat-modis-%' OR o.blob LIKE '%>sat-viirs-%' OR o.blob LIKE '%>sat-airs-%')
-    AND o.blob LIKE '%<id>$OLD_WS</id>%'
-);
-SQL
+    PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -U "$PG_USER" -d maritime -c "UPDATE geoserver.object SET blob = REPLACE(blob, '<id>$OLD_WS</id>', '<id>$WS_BLOB</id>') WHERE id IN (SELECT o.id FROM geoserver.object o JOIN geoserver.type t ON o.type_id=t.oid WHERE t.typename='org.geoserver.catalog.CoverageStoreInfo' AND (o.blob LIKE '%>sat-modis-%' OR o.blob LIKE '%>sat-viirs-%' OR o.blob LIKE '%>sat-airs-%') AND o.blob LIKE '%<id>$OLD_WS</id>%');"
 
     log "→ migrate CoverageInfo namespace refs"
-    PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -U "$PG_USER" -d maritime <<SQL
-UPDATE geoserver.object SET blob = REPLACE(blob, '<id>$OLD_NS</id>', '<id>$NS_BLOB</id>')
-WHERE id IN (
-  SELECT o.id FROM geoserver.object o JOIN geoserver.type t ON o.type_id=t.oid
-  WHERE t.typename='org.geoserver.catalog.CoverageInfo'
-    AND (o.blob LIKE '%>sat-modis-%' OR o.blob LIKE '%>sat-viirs-%' OR o.blob LIKE '%>sat-airs-%')
-    AND o.blob LIKE '%<id>$OLD_NS</id>%'
-);
-SQL
+    PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -U "$PG_USER" -d maritime -c "UPDATE geoserver.object SET blob = REPLACE(blob, '<id>$OLD_NS</id>', '<id>$NS_BLOB</id>') WHERE id IN (SELECT o.id FROM geoserver.object o JOIN geoserver.type t ON o.type_id=t.oid WHERE t.typename='org.geoserver.catalog.CoverageInfo' AND (o.blob LIKE '%>sat-modis-%' OR o.blob LIKE '%>sat-viirs-%' OR o.blob LIKE '%>sat-airs-%') AND o.blob LIKE '%<id>$OLD_NS</id>%');"
 
     log "→ verify migration"
     COUNT_STORES=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -U "$PG_USER" -d maritime -tA -c \
