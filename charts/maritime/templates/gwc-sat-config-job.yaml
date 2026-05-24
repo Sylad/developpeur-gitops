@@ -64,6 +64,13 @@ data:
         log "  skip (HTTP $CODE — layer absent ou GWC pas init)"
         continue
       fi
+      # G48 (2026-05-24) — DELETE l'entrée GWC d'abord pour forcer GS à la
+      # régénérer depuis le catalog actuel (pattern résolu hier pour wind-speed
+      # qui avait un LayerInfoImpl-* stale en RAM). Sans DELETE préalable,
+      # le PUT renvoie 500 "already exists" et l'ancienne config persiste.
+      curl -sk -u "$GS_AUTH" -X DELETE \
+        "$GS_URL/gwc/rest/layers/$layer.xml" \
+        -o /dev/null -w "  DELETE %{http_code}\n"
       # PUT config : enable + 1h TTL + regex filter TIME. XML single-line
       # pour rester dans le literal block YAML (indent ≥ 4 sinon parse fail).
       # G42 (2026-05-23) — extended parameterFilters :
