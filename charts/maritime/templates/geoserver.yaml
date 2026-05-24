@@ -47,6 +47,12 @@ spec:
         # change (ex: fix gwc-gs.xml init), cette annotation change → K8s déclenche
         # un rolling restart auto. Sans ça, ConfigMap update ne touche pas le pod.
         checksum/bootstrap-script: {{ include (print $.Template.BasePath "/geoserver-bootstrap-script-configmap.yaml") . | sha256sum }}
+        # G50 (2026-05-24) — track AUSSI le gwc-sat-config-job. Quand son
+        # script REST change (DELETE/PUT logic, parameterFilters, gridsets,
+        # diskquota), purge en RAM nécessaire pour appliquer proprement.
+        checksum/gwc-config-job: {{ include (print $.Template.BasePath "/gwc-sat-config-job.yaml") . | sha256sum }}
+        # G50 — track aussi contour-sld-patch (modifications SLD ⇒ purge cache).
+        checksum/contour-sld-patch: {{ include (print $.Template.BasePath "/contour-sld-patch-job.yaml") . | sha256sum }}
     spec:
       # 2026-05-18 (audit APEX 08 post-sprint) — reset explicite à `default`
       # pour purger un éventuel `geoserver-hz` orphelin laissé par l'ancien
