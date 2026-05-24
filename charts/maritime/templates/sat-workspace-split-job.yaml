@@ -20,6 +20,10 @@ metadata:
   name: maritime-sat-workspace-split-script
   namespace: {{ .Release.Namespace }}
   annotations:
+    # G56b — PreSync hook pour que la ConfigMap soit créée AVANT que le
+    # Job PreSync tente de mount /scripts (sinon FailedMount + boucle).
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
     argocd.argoproj.io/sync-wave: "0"
 data:
   migrate.sh: |
