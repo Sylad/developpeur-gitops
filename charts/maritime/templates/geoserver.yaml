@@ -58,6 +58,12 @@ spec:
         # JDBCConfig cache et picker les nouveaux workspace refs des catalog
         # blobs migrés en SQL UPDATE.
         checksum/sat-workspace-split: {{ include (print $.Template.BasePath "/sat-workspace-split-job.yaml") . | sha256sum }}
+        # G60 (2026-05-24) — track hz-cluster ConfigMap. Quand hazelcast.xml
+        # ou cluster.properties change (RBAC tuning, namespace fix, etc.),
+        # pod restart obligatoire pour reload config Hazelcast.
+        {{- if .Values.geoserverCluster.enabled }}
+        checksum/hz-cluster-config: {{ include (print $.Template.BasePath "/geoserver-hz-cluster.yaml") . | sha256sum }}
+        {{- end }}
     spec:
       # G60 (2026-05-24) — serviceAccount `geoserver-hz` quand cluster.enabled,
       # sinon `default`. Le SA + Role créés par geoserver-hz-cluster.yaml
