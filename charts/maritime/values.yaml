@@ -302,7 +302,7 @@ seaweedfs:
 # déployé (filer S3 :8333 ready). Désactivé par défaut pour rollout
 # progressif — enable une fois G57 stable.
 gwcS3Blobstore:
-  enabled: false
+  enabled: true
 
 # ─── Coverage S3 migration (G59) ────────────────────────────────────
 # Copie /coverage PVC → SeaweedFS bucket maritime-coverage + reconfigure
