@@ -181,7 +181,11 @@ services:
     # un pod subit GC pause / perd temporairement son cache catalog → 404
     # intermittents → OL EncodingError → hide layer. 1 replica = pas de drift.
     # À revoir quand hz-cluster baked + RBAC OK (mais pas ce week-end).
-    replicas: 1
+    # G60 (2026-05-24) — Sprint cluster : bump à 2 replicas avec hz-cluster
+    # synchronisé. 3 = OOM sur Mini-Blue 24Gi (3 × 7Gi pod = 21Gi + reste).
+    # Migrate Hetzner CAX41 32Gi → 3+ replicas possible. Heap réduit à 4g
+    # pour fit 2 replicas (2 × (4g+3g overhead) = 14Gi).
+    replicas: 2
     dataSize: 5Gi
     # 2026-05-19 — SINGLE SOURCE OF TRUTH pour la mémoire JVM. Le template
     # geoserver.yaml lit `heap` pour les 2 -Xmx (JAVA_OPTS + EXTRA_JAVA_OPTS)
@@ -198,7 +202,10 @@ services:
     # 2026-05-23 — bump 6g → 8g après OOM-kill (pod restart 1× en 11h)
     # + saturation perm 100% (7146Mi/7168Mi) → GC thrashing visible côté user
     # ("perfs GS molles" alors que client 144fps). Mini-Blue 15Gi a la marge.
-    heap: "8g"
+    # G60 (2026-05-24) — réduit 8g → 4g pour fit 2 replicas sur Mini-Blue
+    # 24Gi (2 × 7Gi pod = 14Gi). hz-cluster sync compense le cache plus petit.
+    # Migrate Hetzner CAX41 32Gi → restore 8g+ par replica.
+    heap: "4g"
     resources:
       requests: { cpu: "500m", memory: "2Gi" }
       # 2026-05-23 — bump 2 → 4 cores : GS pegged 1994m/2000m pendant
@@ -318,7 +325,12 @@ coverageS3Migration:
 # (GWC S3) + G59 (coverage S3) validés sinon chaque replica re-cache
 # à froid.
 geoserverCluster:
-  enabled: false
+  # G60 (2026-05-24) — Sprint cluster activé.
+  # 2 replicas sur Mini-Blue 24GB RAM (3 = OOM avec heap 8g × 3 + overhead).
+  # Heap réduit 8g→4g pour fit 2 replicas (4g+3g=7Gi × 2 = 14Gi, OK).
+  # Quand migration Hetzner CAX41 32GB+ ou cluster multi-node, monter à 3+
+  # et restorer heap 8g.
+  enabled: true
 
 # ─── GWC sat config (PostSync Job) ──────────────────────────────────
 # Active le cache GWC sur les layers satellite avec TTL 1h + regex filter
