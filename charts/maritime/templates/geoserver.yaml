@@ -53,6 +53,11 @@ spec:
         checksum/gwc-config-job: {{ include (print $.Template.BasePath "/gwc-sat-config-job.yaml") . | sha256sum }}
         # G50 — track aussi contour-sld-patch (modifications SLD ⇒ purge cache).
         checksum/contour-sld-patch: {{ include (print $.Template.BasePath "/contour-sld-patch-job.yaml") . | sha256sum }}
+        # G56 (2026-05-24) — track sat workspace split job. Quand son script
+        # change (migration nouveaux layers, etc.), pod restart pour purger
+        # JDBCConfig cache et picker les nouveaux workspace refs des catalog
+        # blobs migrés en SQL UPDATE.
+        checksum/sat-workspace-split: {{ include (print $.Template.BasePath "/sat-workspace-split-job.yaml") . | sha256sum }}
     spec:
       # 2026-05-18 (audit APEX 08 post-sprint) — reset explicite à `default`
       # pour purger un éventuel `geoserver-hz` orphelin laissé par l'ancien

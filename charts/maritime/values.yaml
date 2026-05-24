@@ -236,7 +236,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-1cc7851
+    tag: sha-91e1c38
     replicas: 1
     port: 80
     resources:
@@ -270,6 +270,13 @@ coverage:
 # Permet de respecter la règle "tout passe par GeoServer" pour ces layers
 # externes sans dupliquer le storage (cascade = proxy live).
 wmsCascadeBootstrap:
+  enabled: true
+
+# ─── Sat workspace split (G56) ──────────────────────────────────────
+# Migration des 7 NASA GIBS sat layers (sat-modis-*, sat-viirs-*,
+# sat-airs-*) vers workspace dédié `aetherwx-sat`. GetCap principal
+# 4× plus rapide (passe de 36s cold à ~5-10s estimé).
+satWorkspaceSplit:
   enabled: true
 
 # ─── GWC sat config (PostSync Job) ──────────────────────────────────

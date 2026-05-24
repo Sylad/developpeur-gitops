@@ -1,0 +1,177 @@
+{{- if .Values.satWorkspaceSplit.enabled }}
+# Maritime — Sat workspace split (G56)
+#
+# 2026-05-24 — User feedback : GetCapabilities sur `aetherwx` workspace
+# met 36s en cache cold à cause des 25+ layers agrégés (sat NASA GIBS
+# en particulier avec leur time-dim étendue). MODIS animation hit le
+# timeout client 10s → G49 fail-loud.
+#
+# Solution : déplacer les 7 NASA GIBS layers (sat-modis-*, sat-viirs-*,
+# sat-airs-*) dans un workspace dédié `aetherwx-sat`. GetCap sur
+# /geoserver/aetherwx/wms ne charge plus que ~18 layers (-7) et
+# /geoserver/aetherwx-sat/wms ~7 = chacun ~4× plus rapide.
+#
+# Le Job est idempotent : check workspace exists avant POST + skip
+# UPDATE blobs déjà migrés. Run en ArgoCD PreSync (avant cascade-bootstrap
+# qui dépend de la stabilité du catalog).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: maritime-sat-workspace-split-script
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+data:
+  migrate.sh: |
+    #!/bin/bash
+    set -eu
+
+    GS_URL="${GS_URL:-http://geoserver:8080/geoserver}"
+    GS_AUTH="${GS_USER:-admin}:${GS_PASSWORD:-geoserver}"
+    NEW_WS="aetherwx-sat"
+    NS_URI="https://aetherwx.sladoire.dev/${NEW_WS}"
+
+    log() { echo "[$(date -u -Iseconds)] $*"; }
+
+    # ─── 1. Create workspace + namespace (idempotent) ───────────────
+    log "→ check/create workspace $NEW_WS"
+    code=$(curl -sk -u "$GS_AUTH" -o /dev/null -w "%{http_code}" \
+      "$GS_URL/rest/workspaces/$NEW_WS.json")
+    if [ "$code" = "404" ]; then
+      log "  workspace absent, creating"
+      curl -sk -u "$GS_AUTH" -X POST -H "Content-Type: application/json" \
+        -d "{\"workspace\":{\"name\":\"$NEW_WS\"}}" \
+        "$GS_URL/rest/workspaces" \
+        -o /dev/null -w "  POST workspace %{http_code}\n"
+      # GS auto-creates a namespace with prefix=workspace_name but the URI
+      # defaults to http://<workspace>. We PUT the namespace with our URI.
+      curl -sk -u "$GS_AUTH" -X PUT -H "Content-Type: application/json" \
+        -d "{\"namespace\":{\"prefix\":\"$NEW_WS\",\"uri\":\"$NS_URI\"}}" \
+        "$GS_URL/rest/namespaces/$NEW_WS" \
+        -o /dev/null -w "  PUT namespace %{http_code}\n"
+    else
+      log "  workspace exists ($code)"
+    fi
+
+    # ─── 2. Retrieve NEW workspace + namespace ids ──────────────────
+    log "→ fetch new workspace + namespace ids"
+    WS_BLOB=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -U "$PG_USER" -d maritime -tA -c \
+      "SELECT id FROM geoserver.object o JOIN geoserver.type t ON o.type_id=t.oid
+       WHERE t.typename='org.geoserver.catalog.WorkspaceInfo'
+         AND o.blob LIKE '%<name>$NEW_WS</name>%';")
+    NS_BLOB=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -U "$PG_USER" -d maritime -tA -c \
+      "SELECT id FROM geoserver.object o JOIN geoserver.type t ON o.type_id=t.oid
+       WHERE t.typename='org.geoserver.catalog.NamespaceInfo'
+         AND o.blob LIKE '%<prefix>$NEW_WS</prefix>%';")
+    log "  WORKSPACE id = $WS_BLOB"
+    log "  NAMESPACE id = $NS_BLOB"
+    if [ -z "$WS_BLOB" ] || [ -z "$NS_BLOB" ]; then
+      log "✗ ABORT : missing ws or ns id (POST workspace may have failed)"
+      exit 1
+    fi
+
+    # ─── 3. Find old workspace + namespace ids (aetherwx) ───────────
+    OLD_WS=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -U "$PG_USER" -d maritime -tA -c \
+      "SELECT id FROM geoserver.object o JOIN geoserver.type t ON o.type_id=t.oid
+       WHERE t.typename='org.geoserver.catalog.WorkspaceInfo'
+         AND o.blob LIKE '%<name>aetherwx</name>%';")
+    OLD_NS=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -U "$PG_USER" -d maritime -tA -c \
+      "SELECT id FROM geoserver.object o JOIN geoserver.type t ON o.type_id=t.oid
+       WHERE t.typename='org.geoserver.catalog.NamespaceInfo'
+         AND o.blob LIKE '%<prefix>aetherwx</prefix>%';")
+    log "  OLD WORKSPACE = $OLD_WS"
+    log "  OLD NAMESPACE = $OLD_NS"
+
+    # ─── 4. SQL UPDATE on 7 CoverageStoreInfo + 7 CoverageInfo ──────
+    log "→ migrate CoverageStoreInfo workspace refs"
+    PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -U "$PG_USER" -d maritime <<SQL
+UPDATE geoserver.object SET blob = REPLACE(blob, '<id>$OLD_WS</id>', '<id>$WS_BLOB</id>')
+WHERE id IN (
+  SELECT o.id FROM geoserver.object o JOIN geoserver.type t ON o.type_id=t.oid
+  WHERE t.typename='org.geoserver.catalog.CoverageStoreInfo'
+    AND (o.blob LIKE '%>sat-modis-%' OR o.blob LIKE '%>sat-viirs-%' OR o.blob LIKE '%>sat-airs-%')
+    AND o.blob LIKE '%<id>$OLD_WS</id>%'
+);
+SQL
+
+    log "→ migrate CoverageInfo namespace refs"
+    PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -U "$PG_USER" -d maritime <<SQL
+UPDATE geoserver.object SET blob = REPLACE(blob, '<id>$OLD_NS</id>', '<id>$NS_BLOB</id>')
+WHERE id IN (
+  SELECT o.id FROM geoserver.object o JOIN geoserver.type t ON o.type_id=t.oid
+  WHERE t.typename='org.geoserver.catalog.CoverageInfo'
+    AND (o.blob LIKE '%>sat-modis-%' OR o.blob LIKE '%>sat-viirs-%' OR o.blob LIKE '%>sat-airs-%')
+    AND o.blob LIKE '%<id>$OLD_NS</id>%'
+);
+SQL
+
+    log "→ verify migration"
+    COUNT_STORES=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -U "$PG_USER" -d maritime -tA -c \
+      "SELECT COUNT(*) FROM geoserver.object o JOIN geoserver.type t ON o.type_id=t.oid
+       WHERE t.typename='org.geoserver.catalog.CoverageStoreInfo'
+         AND (o.blob LIKE '%>sat-modis-%' OR o.blob LIKE '%>sat-viirs-%' OR o.blob LIKE '%>sat-airs-%')
+         AND o.blob LIKE '%<id>$WS_BLOB</id>%';")
+    COUNT_COVERAGES=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -U "$PG_USER" -d maritime -tA -c \
+      "SELECT COUNT(*) FROM geoserver.object o JOIN geoserver.type t ON o.type_id=t.oid
+       WHERE t.typename='org.geoserver.catalog.CoverageInfo'
+         AND (o.blob LIKE '%>sat-modis-%' OR o.blob LIKE '%>sat-viirs-%' OR o.blob LIKE '%>sat-airs-%')
+         AND o.blob LIKE '%<id>$NS_BLOB</id>%';")
+    log "  CoverageStoreInfo migrated : $COUNT_STORES/7"
+    log "  CoverageInfo migrated : $COUNT_COVERAGES/7"
+
+    # ─── 5. Reload GS catalog (will not pick up JDBCConfig cache changes; ───
+    # un restart pod sera fait à la prochaine sync ArgoCD via checksum annotation)
+    log "→ reload GS catalog"
+    curl -sk -u "$GS_AUTH" -X POST "$GS_URL/rest/reload" \
+      -o /dev/null -w "  POST reload %{http_code}\n" || true
+
+    log "✓ done"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: maritime-sat-workspace-split
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  ttlSecondsAfterFinished: 600
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app: maritime-sat-workspace-split
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: ghcr.io/cloudnative-pg/postgresql:16
+          imagePullPolicy: IfNotPresent
+          command: ["bash", "/scripts/migrate.sh"]
+          env:
+            - name: GS_URL
+              value: "http://geoserver:8080/geoserver"
+            - name: GS_USER
+              valueFrom: { secretKeyRef: { name: maritime-shared-env, key: GEOSERVER_ADMIN_USER } }
+            - name: GS_PASSWORD
+              valueFrom: { secretKeyRef: { name: maritime-shared-env, key: GEOSERVER_ADMIN_PASSWORD } }
+            - name: PG_HOST
+              value: "pg-catalog-rw"
+            - name: PG_USER
+              valueFrom: { secretKeyRef: { name: pg-catalog-app, key: username } }
+            - name: PG_PASSWORD
+              valueFrom: { secretKeyRef: { name: pg-catalog-app, key: password } }
+          volumeMounts:
+            - name: script
+              mountPath: /scripts
+          resources:
+            requests: { cpu: "50m",  memory: "64Mi" }
+            limits:   { cpu: "200m", memory: "256Mi" }
+      volumes:
+        - name: script
+          configMap:
+            name: maritime-sat-workspace-split-script
+            defaultMode: 0755
+{{- end }}

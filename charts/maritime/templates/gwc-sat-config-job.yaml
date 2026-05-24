@@ -38,18 +38,21 @@ data:
     # + SST + wind/wave forecast. User feedback "activer au max GWC pour
     # décharger GS sur un max de raster (TIME, ENV, VIEWPARAMS, palettes)".
     # PUT silencieux 404 → tolère pour layers absents (sat cascade).
+    # G56 (2026-05-24) — sat NASA GIBS layers migrés dans workspace
+    # `aetherwx-sat` (split pour accélérer GetCap `aetherwx`). Cascade
+    # layers (EUMETSAT, DWD, KNMI) restent dans `aetherwx`.
     for layer in \
       "aetherwx:sst-daily" \
       "aetherwx:wind-speed" \
       "aetherwx:wave-hs" \
       "aetherwx:wave-dir" \
-      "aetherwx:sat-modis-true-color" \
-      "aetherwx:sat-viirs-true-color" \
-      "aetherwx:sat-modis-ir" \
-      "aetherwx:sat-airs-air-temp" \
-      "aetherwx:sat-modis-cloud-top" \
-      "aetherwx:sat-modis-aerosol" \
-      "aetherwx:sat-viirs-day-night" \
+      "aetherwx-sat:sat-modis-true-color" \
+      "aetherwx-sat:sat-viirs-true-color" \
+      "aetherwx-sat:sat-modis-ir" \
+      "aetherwx-sat:sat-airs-air-temp" \
+      "aetherwx-sat:sat-modis-cloud-top" \
+      "aetherwx-sat:sat-modis-aerosol" \
+      "aetherwx-sat:sat-viirs-day-night" \
       "aetherwx:sat-eu-ir-rss" \
       "aetherwx:sat-global-ir-mtg" \
       "aetherwx:sat-eu-hrv-rgb" \
