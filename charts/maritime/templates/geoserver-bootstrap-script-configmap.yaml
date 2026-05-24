@@ -210,6 +210,87 @@ data:
     GWCEOF
     echo "[cluster-bootstrap] gwc-gs.xml écrit avec directWMSIntegration=true + EPSG:3857"
 
+    # G51 (2026-05-24) — Pre-bake gwc/geowebcache.xml (gridset EPSG:3857)
+    # AVANT boot GS. Sinon dépendance sur Job REST POST qui peut foirer
+    # sur fresh deploy → reproductibilité gitops bancale.
+    # Idempotent : écrit seulement si EPSG:3857 absent du fichier (préserve
+    # les user-added gridsets ajoutés via UI).
+    mkdir -p "${GEOSERVER_DATA_DIR}/gwc"
+    GWC_XML="${GEOSERVER_DATA_DIR}/gwc/geowebcache.xml"
+    if [ ! -f "$GWC_XML" ] || ! grep -q "EPSG:3857" "$GWC_XML"; then
+      echo "[cluster-bootstrap] writing gwc/geowebcache.xml with EPSG:3857 gridset"
+      cat > "$GWC_XML" <<'GEOEOF'
+    <?xml version="1.0" encoding="utf-8"?>
+    <gwcConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns="http://geowebcache.org/schema/1.8.0"
+      xsi:schemaLocation="http://geowebcache.org/schema/1.8.0 http://geowebcache.org/schema/1.8.0/geowebcache.xsd">
+      <version>1.8.0</version>
+      <backendTimeout>120</backendTimeout>
+      <gridSets>
+        <gridSet>
+          <name>EPSG:3857</name>
+          <srs><number>3857</number></srs>
+          <extent>
+            <coords>
+              <double>-20037508.34</double>
+              <double>-20037508.34</double>
+              <double>20037508.34</double>
+              <double>20037508.34</double>
+            </coords>
+          </extent>
+          <alignTopLeft>false</alignTopLeft>
+          <scaleDenominators>
+            <double>5.590822640287176E8</double><double>2.7954113201435876E8</double>
+            <double>1.3977056600717938E8</double><double>6.988528300358969E7</double>
+            <double>3.4942641501794845E7</double><double>1.7471320750897422E7</double>
+            <double>8735660.375448711</double><double>4367830.187724356</double>
+            <double>2183915.093862178</double><double>1091957.546931089</double>
+            <double>545978.7734655446</double><double>272989.3867327723</double>
+            <double>136494.69336638614</double><double>68247.34668319307</double>
+            <double>34123.673341596535</double><double>17061.836670798268</double>
+            <double>8530.918335399134</double><double>4265.459167699567</double>
+            <double>2132.7295838497835</double><double>1066.3647919248917</double>
+            <double>533.1823959624459</double><double>266.59119798122293</double>
+            <double>133.29559899061147</double><double>66.64779949530573</double>
+            <double>33.32389974765287</double><double>16.661949873826433</double>
+            <double>8.330974936913217</double><double>4.165487468456608</double>
+            <double>2.082743734228304</double><double>1.041371867114152</double>
+            <double>0.520685933557076</double>
+          </scaleDenominators>
+          <metersPerUnit>1.0</metersPerUnit>
+          <pixelSize>2.8E-4</pixelSize>
+          <tileHeight>256</tileHeight>
+          <tileWidth>256</tileWidth>
+          <yCoordinateFirst>false</yCoordinateFirst>
+        </gridSet>
+      </gridSets>
+    </gwcConfiguration>
+    GEOEOF
+    fi
+
+    # G51 (2026-05-24) — Pre-bake gwc/diskquota.xml (2 GB max + LFU eviction)
+    # AVANT boot GS. Sinon Job REST PUT peut échouer silencieusement et
+    # le cache disque grandit sans bound.
+    # Idempotent : écrit seulement si fichier absent.
+    DQ_XML="${GEOSERVER_DATA_DIR}/gwc/diskquota.xml"
+    if [ ! -f "$DQ_XML" ]; then
+      echo "[cluster-bootstrap] writing gwc/diskquota.xml (2GB LFU)"
+      cat > "$DQ_XML" <<'DQEOF'
+    <?xml version="1.0" encoding="UTF-8"?>
+    <org.geowebcache.diskquota.DiskQuotaConfig>
+      <enabled>true</enabled>
+      <cacheCleanUpFrequency>10</cacheCleanUpFrequency>
+      <cacheCleanUpUnits>MINUTES</cacheCleanUpUnits>
+      <maxConcurrentCleanUps>2</maxConcurrentCleanUps>
+      <globalExpirationPolicyName>LFU</globalExpirationPolicyName>
+      <globalQuota>
+        <id>0</id>
+        <bytes>2147483648</bytes>
+      </globalQuota>
+    </org.geowebcache.diskquota.DiskQuotaConfig>
+    DQEOF
+    fi
+
     echo "[cluster-bootstrap] done, exec /opt/startup.sh"
     exec /opt/startup.sh "$@"
 {{- end }}
