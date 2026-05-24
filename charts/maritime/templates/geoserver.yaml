@@ -153,6 +153,21 @@ spec:
                 fieldRef:
                   fieldPath: metadata.namespace
             {{- end }}
+            {{- if .Values.seaweedfs.enabled }}
+            # G63 (2026-05-24) — env vars pour maritime-gwc-init plugin Java
+            # qui crée le BlobStore S3 + assigne layers au boot GS via
+            # @PostConstruct. Évite le bug REST PUT non-persistant.
+            - name: GWC_S3_ENDPOINT
+              value: "http://seaweedfs-filer:8333"
+            - name: GWC_S3_BUCKET
+              value: "maritime-gwc-tiles"
+            - name: GWC_S3_BLOBSTORE_ID
+              value: "maritime-s3"
+            - name: GWC_S3_ACCESS_KEY
+              valueFrom: { secretKeyRef: { name: maritime-seaweedfs-s3, key: S3_ACCESS_KEY } }
+            - name: GWC_S3_SECRET_KEY
+              valueFrom: { secretKeyRef: { name: maritime-seaweedfs-s3, key: S3_SECRET_KEY } }
+            {{- end }}
           volumeMounts:
             - name: data
               mountPath: /opt/geoserver_data
