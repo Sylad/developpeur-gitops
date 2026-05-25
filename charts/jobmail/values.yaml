@@ -3,7 +3,7 @@
 
 image:
   repository: ghcr.io/sylad/jobmail-assistant
-  tag: latest        # à bumper en sha-<short> après chaque push GHCR
+  tag: sha-f23a92e        # à bumper en sha-<short> après chaque push GHCR
   pullPolicy: IfNotPresent
 
 replicas: 1
