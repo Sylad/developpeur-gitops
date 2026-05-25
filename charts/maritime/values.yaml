@@ -174,7 +174,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/aetherwx-geoserver
-    tag: sha-3523939   # G60 metrics-core (2026-05-24). G63b rollback temporaire :
+    tag: sha-50c8c22   # G64b plugin async init + cascade time dim removed (2026-05-25)
     # le pod sha-e10fc61 booted en 10+min (JDBCResourceStore copy datadir →
     # DB blob saturation), startup probe killed. À investiguer avant re-bump :
     # peut-être plugin maritime-gwc-init crée trop de catalog.save() qui
