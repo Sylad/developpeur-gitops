@@ -1,0 +1,6 @@
+apiVersion: v2
+name: jobmail
+description: JobMail Assistant — privacy-first local job-mail triage (Python + FastAPI + SQLite)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

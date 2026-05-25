@@ -1,0 +1,51 @@
+# JobMail Assistant — values pour Mini-Blue.
+# Le filtrage est 100% local ; seuls les mails job_related sont envoyés au LLM.
+
+image:
+  repository: ghcr.io/sylad/jobmail-assistant
+  tag: latest        # à bumper en sha-<short> après chaque push GHCR
+  pullPolicy: IfNotPresent
+
+replicas: 1
+port: 8765
+
+resources:
+  requests: { cpu: "20m",  memory: "96Mi" }
+  limits:   { cpu: "500m", memory: "256Mi" }
+
+env:
+  LLM_PROVIDER: ollama
+  # Ollama tourne sur l'OS Mini-Blue, pas dans le cluster.
+  # Mini-Blue node IP = 192.168.1.26 ; ollama DOIT écouter sur 0.0.0.0:11434
+  # (export OLLAMA_HOST=0.0.0.0 avant `ollama serve`).
+  OLLAMA_BASE_URL: "http://192.168.1.26:11434"
+  OLLAMA_MODEL: "qwen2.5:14b"
+  IMAP_FOLDER: INBOX
+  IMAP_FETCH_LIMIT: "50"
+  TARGET_PROFILE: "Java senior, GeoServer, OpenLayers, Kubernetes, PostGIS, Spring, Docker"
+
+# Secret référencé pour IMAP_HOST/USER/PASSWORD + ANTHROPIC_API_KEY si tu veux
+# basculer en provider=claude. Créer avec :
+#   kubectl -n preprod create secret generic jobmail-secrets \
+#     --from-literal=IMAP_HOST=imap.example.com \
+#     --from-literal=IMAP_USER=you@example.com \
+#     --from-literal=IMAP_PASSWORD=app-password \
+#     --from-literal=ANTHROPIC_API_KEY=sk-ant-...
+# Idéalement passer en SealedSecret pour push dans Git.
+secretName: jobmail-secrets
+
+persistence:
+  enabled: true
+  size: 1Gi
+  storageClassName: local-path   # single-node, SQLite ≤ 100MB, pas besoin de Longhorn
+
+ingress:
+  enabled: true
+  host: jobmail.dev.local
+  className: nginx
+  tls:
+    enabled: true
+    secretName: jobmail-tls
+  annotations:
+    cert-manager.io/cluster-issuer: mkcert-ca-issuer
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
