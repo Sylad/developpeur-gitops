@@ -199,13 +199,21 @@ spec:
               # = ~50% native du heap, marge confortable. Mini-Blue 15Gi a la place.
               memory: {{ printf "%dGi" (add (.Values.services.geoserver.heap | trimSuffix "g" | int) 3) }}
           startupProbe:
+            # G64b (2026-05-25) — bump 40→80 (=20min budget vs 11min) après
+            # observation marathon : avec plugin maritime-gwc-init G63 baked,
+            # le boot path (JDBCResourceStore.init copy datadir → JDBC blobs +
+            # Hazelcast cluster join + plugin @EventListener) peut dépasser
+            # les 11min, surtout sur cluster Mini-Blue + Longhorn RWX.
+            # 20min reste large (l'image-clé est qu'un pod désormais boot
+            # ~12-15min worst case, on garde marge). Sub-optimal pour rolling
+            # restart mais c'est le trade-off acceptable pour un homelab.
             httpGet:
               path: /geoserver/index.html
               port: 8080
             initialDelaySeconds: 60
             periodSeconds: 15
             timeoutSeconds: 15
-            failureThreshold: 40
+            failureThreshold: 80
           livenessProbe:
             httpGet:
               path: /geoserver/index.html
