@@ -168,6 +168,20 @@ services:
       requests: { cpu: "50m",  memory: "128Mi" }
       limits:   { cpu: "500m", memory: "512Mi" }
 
+  # ─── glofas-fetcher (Copernicus CDS GloFAS forecast crues, cron 6h) ───
+  # Pull NetCDF cems-glofas-forecast 7×24h leadtimes × 3 thresholds via
+  # cdsapi → écrit GeoTIFFs dans /coverage/glofas/<run>/<threshold>/.
+  # Triggered par Argo CronWorkflow `glofas-refresh` (cf Task 8).
+  # Secret K8s manuel `glofas-cds-credentials` (cdsapirc) doit exister.
+  glofasFetcher:
+    enabled: true
+    image: ghcr.io/sylad/aetherwx-glofas-fetcher
+    tag: sha-0b4659f   # initial Phase 1 build (2026-05-27)
+    replicas: 1
+    resources:
+      requests: { cpu: "200m", memory: "512Mi" }
+      limits:   { cpu: "2",    memory: "4Gi" }
+
   # ─── GeoServer (cluster GIS) ──────────────────────────────────────
   # JDBCConfig pointe sur pg-catalog (175 rows déjà migrés depuis NAS).
   # PVC data_dir RWO single-replica preprod. Phase prod = StickySession + N replicas.
