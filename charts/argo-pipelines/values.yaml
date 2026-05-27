@@ -63,6 +63,15 @@ workflows:
     sourceId: 745
     secretName: "maritime-internal-token"
 
+  # 2026-05-27 — Glofas-fetcher trigger. Pattern dévie : call direct
+  # au sidecar Python (PAS via maritime-api internal-trigger), car le
+  # pattern existant cible des sources HTTP REST en DB orchestrator
+  # (firms/metar/usgs), pas un sidecar custom NetCDF→GeoTIFF.
+  # Cron 06:00 UTC quotidien (publish ~02:00 UTC = 4h marge).
+  triggerGlofas:
+    enabled: true
+    fetcherUrl: "http://glofas-fetcher.maritime.svc.cluster.local.:8080"
+
   gsHealthcheck:
     enabled: true
     image: curlimages/curl:8.10.1

@@ -1,0 +1,64 @@
+{{- if .Values.workflows.triggerGlofas.enabled }}
+# 2026-05-27 — Glofas-fetcher trigger.
+#
+# Pattern simplifié : Argo CronWorkflow → POST direct au sidecar
+# Python glofas-fetcher (pas via NestJS internal-trigger, car le
+# pattern existant cible des sources HTTP REST dans data_sources DB,
+# pas des sidecars custom). Cf
+# argo_workflows_orchestrator_migration_pattern.md pour le pattern
+# generic — ici on dévie.
+#
+# Cron 06:00 UTC quotidien — donne 4h de marge après publish GloFAS
+# ~02:00 UTC du run quotidien 00:00 UTC. Pas de retry en cas d'échec
+# cdsapi (la prochaine run reprendra).
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: trigger-glofas
+  namespace: argo
+spec:
+  schedules:
+    - "0 6 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  workflowSpec:
+    entrypoint: main
+    serviceAccountName: argo-workflow
+    activeDeadlineSeconds: 4200   # 70 min — cdsapi queue + transfer + 3 thresholds séquentiels
+    ttlStrategy:
+      secondsAfterCompletion: 86400
+    arguments:
+      parameters:
+        - name: fetcher-url
+          value: {{ .Values.workflows.triggerGlofas.fetcherUrl | quote }}
+    templates:
+      - name: main
+        steps:
+          - - name: trigger
+              template: post-fetch
+      - name: post-fetch
+        retryStrategy:
+          limit: 2
+          backoff: { duration: "10m", factor: 3 }
+        container:
+          image: curlimages/curl:8.10.1
+          command: [sh, -c]
+          args:
+            - |
+              set -e
+              URL="{{`{{workflow.parameters.fetcher-url}}`}}/fetch"
+              # Run de référence = today 00:00 UTC. Publié ~02:00 UTC,
+              # on est à 06:00 UTC = OK.
+              RUN_TIME="$(date -u +%Y-%m-%d)T00:00:00Z"
+              echo "POST $URL run_time=$RUN_TIME"
+              PAYLOAD="{\"run_time\":\"$RUN_TIME\",\"leadtimes\":[24,48,72,96,120,144,168],\"thresholds\":[\"Q5\",\"Q20\",\"Q50\"]}"
+              echo "payload: $PAYLOAD"
+              curl -fsS -X POST -H "Content-Type: application/json" -o /tmp/r.json \
+                -d "$PAYLOAD" \
+                "$URL"
+              echo "OK · response : $(cat /tmp/r.json)"
+          resources:
+            requests: { cpu: "10m", memory: "16Mi" }
+            limits:   { cpu: "100m", memory: "64Mi" }
+{{- end }}
