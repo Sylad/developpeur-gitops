@@ -13,7 +13,7 @@ services:
     # undici fetch() qui timeoutait sur Alpine 3.23 musl libc en HTTPS
     # externe (USGS, METAR, hubeau-débits, etc.). https.request() marche
     # mais le code utilise fetch() partout → seul recours : base glibc.
-    tag: sha-a6ac28a
+    tag: sha-9823341   # 2026-05-27 — Task 11 /api/glofas/timeseries + G66e popups
     port: 3010
     replicas: 1
     resources:
