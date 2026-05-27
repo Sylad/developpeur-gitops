@@ -13,7 +13,7 @@ services:
     # undici fetch() qui timeoutait sur Alpine 3.23 musl libc en HTTPS
     # externe (USGS, METAR, hubeau-débits, etc.). https.request() marche
     # mais le code utilise fetch() partout → seul recours : base glibc.
-    tag: sha-9823341   # 2026-05-27 — Task 11 /api/glofas/timeseries + G66e popups
+    tag: sha-84a3b9c  # G66f FIR/UIR OpenAIP api+frontend 2026-05-27
     port: 3010
     replicas: 1
     resources:
@@ -263,7 +263,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-9823341  # G66e popups SIGMET/TAF/cables 2026-05-27
+    tag: sha-84a3b9c  # G66f FIR/UIR OpenAIP api+frontend 2026-05-27
     replicas: 1
     port: 80
     resources:
