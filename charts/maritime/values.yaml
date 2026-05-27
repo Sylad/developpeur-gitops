@@ -174,13 +174,11 @@ services:
   # Triggered par Argo CronWorkflow `glofas-refresh` (cf Task 8).
   # Secret K8s manuel `glofas-cds-credentials` (cdsapirc) doit exister.
   glofasFetcher:
-    # G66d (2026-05-27) — temp disable : uvicorn crash sur log_config=/dev/null,
-    # block ArgoCD sync wave qui empêche frontend G66c CORS proxy deploy. Re-enable
-    # quand le bug uvicorn dans services/glofas-fetcher/app/main.py sera fix
-    # (retirer `--log-config /dev/null` ou pointer vers /etc/uvicorn/log.yaml).
-    enabled: false
+    # 2026-05-27 — re-enabled après fix uvicorn `--no-access-log` (commit
+    # 1983f21). G66d avait disabled à cause de crash --log-config /dev/null.
+    enabled: true
     image: ghcr.io/sylad/aetherwx-glofas-fetcher
-    tag: sha-0b4659f   # initial Phase 1 build (2026-05-27)
+    tag: sha-1983f21   # fix uvicorn --no-access-log (2026-05-27)
     replicas: 1
     resources:
       requests: { cpu: "200m", memory: "512Mi" }
