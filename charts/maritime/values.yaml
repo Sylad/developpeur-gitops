@@ -263,7 +263,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-b856536  # G66d TAF bbox fix 2026-05-27
+    tag: sha-9823341  # G66e popups SIGMET/TAF/cables 2026-05-27
     replicas: 1
     port: 80
     resources:
