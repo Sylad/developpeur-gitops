@@ -13,7 +13,7 @@ services:
     # undici fetch() qui timeoutait sur Alpine 3.23 musl libc en HTTPS
     # externe (USGS, METAR, hubeau-débits, etc.). https.request() marche
     # mais le code utilise fetch() partout → seul recours : base glibc.
-    tag: sha-af1a063  # G66j FIR icaoClass=8 fix 2026-05-27
+    tag: sha-313f676  # G66k FIR VATSpy 2026-05-27
     port: 3010
     replicas: 1
     resources:
