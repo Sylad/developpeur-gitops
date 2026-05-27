@@ -13,7 +13,7 @@ services:
     # undici fetch() qui timeoutait sur Alpine 3.23 musl libc en HTTPS
     # externe (USGS, METAR, hubeau-débits, etc.). https.request() marche
     # mais le code utilise fetch() partout → seul recours : base glibc.
-    tag: sha-b64721a  # G66h OpenAIP header fix 2026-05-27
+    tag: sha-487cf81  # G66i FIR type=10 fix 2026-05-27
     port: 3010
     replicas: 1
     resources:
