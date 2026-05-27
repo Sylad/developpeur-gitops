@@ -261,7 +261,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-cffa9b4  # G65+G66b globe fixes 2026-05-27
+    tag: sha-0aa0263  # G66c CORS proxy SIGMET/TAF/cables 2026-05-27
     replicas: 1
     port: 80
     resources:
