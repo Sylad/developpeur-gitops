@@ -263,7 +263,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-84a3b9c  # G66f FIR/UIR OpenAIP api+frontend 2026-05-27
+    tag: sha-b579778  # G66g nginx DNS resolver fix 2026-05-27
     replicas: 1
     port: 80
     resources:
