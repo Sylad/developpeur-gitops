@@ -132,7 +132,7 @@ services:
   weatherFetcher:
     enabled: true
     image: ghcr.io/sylad/aetherwx-weather-fetcher
-    tag: sha-8e866b9  # G69 4 GFS atmos coverages 2026-05-28
+    tag: sha-b0f45dd  # G69c nearestMatchEnabled 2026-05-28
     replicas: 1
     resources:
       requests: { cpu: "100m", memory: "256Mi" }
@@ -263,7 +263,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-920a756  # G66l airports + attribution 2026-05-28
+    tag: sha-b0cd628  # G68 nginx DNS resolver (ci-trigger) 2026-05-28
     replicas: 1
     port: 80
     resources:
