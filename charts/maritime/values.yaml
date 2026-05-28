@@ -190,7 +190,7 @@ services:
   geoserver:
     enabled: true
     image: ghcr.io/sylad/aetherwx-geoserver
-    tag: sha-80472b9   # G65b cascade TIME forward fix (2026-05-26)
+    tag: sha-6d370a6   # 2026-05-28 — netcdf/grib plugins pour GloFAS (toujours 2.28.3)
     # le pod sha-e10fc61 booted en 10+min (JDBCResourceStore copy datadir →
     # DB blob saturation), startup probe killed. À investiguer avant re-bump :
     # peut-être plugin maritime-gwc-init crée trop de catalog.save() qui
