@@ -263,7 +263,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-b579778  # G66g nginx DNS resolver fix 2026-05-27
+    tag: sha-042cc85  # EFAS move Sources→Hydrologie + G66g-k 2026-05-27
     replicas: 1
     port: 80
     resources:
