@@ -178,7 +178,7 @@ services:
     # 1983f21). G66d avait disabled à cause de crash --log-config /dev/null.
     enabled: true
     image: ghcr.io/sylad/aetherwx-glofas-fetcher
-    tag: sha-1983f21   # fix uvicorn --no-access-log (2026-05-27)
+    tag: sha-487e77d   # A2 pivot — GRIB download only, EWDS, control_forecast (2026-05-28)
     replicas: 1
     resources:
       requests: { cpu: "200m", memory: "512Mi" }
