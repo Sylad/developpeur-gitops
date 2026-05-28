@@ -263,7 +263,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-eb0d24e  # G67 suppression carte 2D OL legacy 2026-05-28
+    tag: sha-7e4ed1d  # G67c wildcard redirect 2026-05-28
     replicas: 1
     port: 80
     resources:
