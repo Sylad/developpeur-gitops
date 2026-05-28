@@ -263,7 +263,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-b0cd628  # G68 nginx DNS resolver (ci-trigger) 2026-05-28
+    tag: sha-1b0cc0b  # G68 GloFAS time-animated layer (incl nginx DNS) 2026-05-28
     replicas: 1
     port: 80
     resources:
