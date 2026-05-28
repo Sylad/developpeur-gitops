@@ -48,14 +48,12 @@ spec:
             - |
               set -e
               URL="{{`{{workflow.parameters.fetcher-url}}`}}/fetch"
-              # Run de référence = today 00:00 UTC. Publié ~02:00 UTC,
-              # on est à 06:00 UTC = OK.
-              RUN_TIME="$(date -u +%Y-%m-%d)T00:00:00Z"
-              echo "POST $URL run_time=$RUN_TIME"
-              PAYLOAD="{\"run_time\":\"$RUN_TIME\",\"leadtimes\":[24,48,72,96,120,144,168],\"thresholds\":[\"Q5\",\"Q20\",\"Q50\"]}"
-              echo "payload: $PAYLOAD"
+              # Pas de run_time : le sidecar choisit HIER 00:00 UTC (le run du
+              # jour n'est pas publié sur EWDS à 06:00 UTC). Pas de date math
+              # busybox ici (curl image = Alpine, `date -d yesterday` KO).
+              echo "POST $URL (run_time défaut = hier côté sidecar)"
               curl -fsS -X POST -H "Content-Type: application/json" -o /tmp/r.json \
-                -d "$PAYLOAD" \
+                -d '{"leadtimes":[24,48,72,96,120,144,168]}' \
                 "$URL"
               echo "OK · response : $(cat /tmp/r.json)"
           resources:
