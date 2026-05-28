@@ -26,6 +26,18 @@ spec:
               value: /coverage/glofas
             - name: PYTHONUNBUFFERED
               value: "1"
+            # GS REST pour bootstrap idempotent du layer (store+coverage+time dim)
+            - name: GEOSERVER_URL
+              value: "http://geoserver:8080/geoserver"
+            - name: GEOSERVER_ADMIN_USER
+              value: "admin"
+            - name: GEOSERVER_WORKSPACE
+              value: "aetherwx"
+          # GEOSERVER_ADMIN_PASSWORD vient du Secret maritime-shared-env
+          envFrom:
+            - secretRef:
+                name: maritime-shared-env
+                optional: true
           volumeMounts:
             - name: coverage
               mountPath: /coverage
