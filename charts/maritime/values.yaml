@@ -263,7 +263,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-042cc85  # EFAS move Sources→Hydrologie + G66g-k 2026-05-27
+    tag: sha-eb0d24e  # G67 suppression carte 2D OL legacy 2026-05-28
     replicas: 1
     port: 80
     resources:
