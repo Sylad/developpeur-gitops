@@ -178,7 +178,7 @@ services:
     # 1983f21). G66d avait disabled à cause de crash --log-config /dev/null.
     enabled: true
     image: ghcr.io/sylad/aetherwx-glofas-fetcher
-    tag: sha-5f60dc8   # A1 fix tuilage 256x256 (2026-05-28)
+    tag: sha-60c442f   # gs_bootstrap idempotent (2026-05-28)
     replicas: 1
     resources:
       requests: { cpu: "200m", memory: "512Mi" }
@@ -248,7 +248,7 @@ services:
     # quand l'image sera buildée (workflow .github/workflows/style-bootstrap.yml).
     enabled: false
     image: ghcr.io/sylad/aetherwx-style-bootstrap
-    tag: sha-4c4a077
+    tag: sha-60c442f   # + glofas-discharge SLD (2026-05-28)
 
   # ─── GS Workspace Rename (Sprint 0 — 2026-05-21) ──────────────────
   # Job PreSync idempotent qui renomme atomiquement le workspace GS
