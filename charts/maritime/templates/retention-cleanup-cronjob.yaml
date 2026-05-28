@@ -112,7 +112,7 @@ spec:
                   # Algo : extract YYYYMMDD, compare à J-7 et J+7.
                   PAST=$(date -u -d '7 days ago' +%Y%m%d)
                   FUTURE=$(date -u -d '7 days' +%Y%m%d)
-                  for d in /coverage/wind-speed /coverage/wind-speed-arpege /coverage/wind-speed-arome /coverage/wind-speed-gfs /coverage/wave-hs /coverage/wave-dir; do
+                  for d in /coverage/wind-speed /coverage/wind-speed-arpege /coverage/wind-speed-arome /coverage/wind-speed-gfs /coverage/wave-hs /coverage/wave-dir /coverage/glofas; do
                     [ -d "$d" ] || continue
                     for f in "$d"/*.tif; do
                       [ -f "$f" ] || continue
