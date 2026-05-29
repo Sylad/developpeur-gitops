@@ -287,7 +287,7 @@ ingress:
 coverage:
   enabled: true
   storageClass: longhorn
-  coverageSize: 10Gi
+  coverageSize: 50Gi
   windArrowsSize: 2Gi
 
 # ─── WMS Cascade Bootstrap (PostSync Job) ───────────────────────────
