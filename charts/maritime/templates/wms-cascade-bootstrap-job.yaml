@@ -37,71 +37,112 @@ data:
 
     log() { echo "[$(date -u -Iseconds)] $*"; }
 
+    # G70 (2026-06-15) — fonctions paramétrées sur le workspace pour
+    # supporter NASA GIBS qui vit dans `aetherwx-sat` (split G56), à côté
+    # des cascades EUMETSAT/DWD/KNMI qui restent dans `aetherwx`.
     create_wmsstore() {
-      name="$1"
-      capabilities_url="$2"
-      log "→ wmsstore $name"
+      ws="$1"
+      name="$2"
+      capabilities_url="$3"
+      log "→ wmsstore $ws:$name"
       # DELETE recurse (supprime store + layers cascade liés). Idempotent.
       curl -sk -u "$GS_AUTH" -X DELETE \
-        "$GS_URL/rest/workspaces/$WS/wmsstores/$name?recurse=true" \
+        "$GS_URL/rest/workspaces/$ws/wmsstores/$name?recurse=true" \
         -o /dev/null -w "  DELETE %{http_code}\n" || true
       # POST JSON (bypass XStream XML bug)
       curl -sk -u "$GS_AUTH" -X POST -H "Content-Type: application/json" \
-        -d "{\"wmsStore\":{\"name\":\"$name\",\"type\":\"WMS\",\"enabled\":true,\"workspace\":{\"name\":\"$WS\"},\"capabilitiesURL\":\"$capabilities_url\",\"maxConnections\":6,\"readTimeout\":60,\"connectTimeout\":30}}" \
-        "$GS_URL/rest/workspaces/$WS/wmsstores" \
+        -d "{\"wmsStore\":{\"name\":\"$name\",\"type\":\"WMS\",\"enabled\":true,\"workspace\":{\"name\":\"$ws\"},\"capabilitiesURL\":\"$capabilities_url\",\"maxConnections\":6,\"readTimeout\":60,\"connectTimeout\":30}}" \
+        "$GS_URL/rest/workspaces/$ws/wmsstores" \
         -o /tmp/resp -w "  POST %{http_code}\n"
       head -c 200 /tmp/resp; echo
     }
 
     publish_cascade_layer() {
-      store="$1"
-      native_name="$2"   # ex: msg_rss:ir039_nrt
-      layer_name="$3"    # ex: sat-eu-ir-rss (URL-safe + lowercase-dash)
-      title="$4"
-      log "→ wmslayer cascade $WS:$layer_name (← $store:$native_name)"
+      ws="$1"
+      store="$2"
+      native_name="$3"   # ex: msg_rss:ir039_nrt
+      layer_name="$4"    # ex: sat-eu-ir-rss (URL-safe + lowercase-dash)
+      title="$5"
+      log "→ wmslayer cascade $ws:$layer_name (← $store:$native_name)"
       # POST JSON avec advertised=true direct (PUT advertised=true après
       # création trigger un bug XStream WMSLayerInfoConverter HTTP 500).
       curl -sk -u "$GS_AUTH" -X POST -H "Content-Type: application/json" \
         -d "{\"wmsLayer\":{\"name\":\"$layer_name\",\"nativeName\":\"$native_name\",\"title\":\"$title\",\"enabled\":true,\"advertised\":true}}" \
-        "$GS_URL/rest/workspaces/$WS/wmsstores/$store/wmslayers" \
+        "$GS_URL/rest/workspaces/$ws/wmsstores/$store/wmslayers" \
         -o /tmp/resp -w "  POST %{http_code}\n"
       head -c 300 /tmp/resp; echo
     }
 
-    # ─── 1. Stores cascade ─────────────────────────────────────────
-    create_wmsstore "eumetsat-view" \
+    # ─── 1. Stores cascade dans workspace `aetherwx` ───────────────
+    create_wmsstore "aetherwx" "eumetsat-view" \
       "https://view.eumetsat.int/geoserver/ows?service=WMS&version=1.3.0&request=GetCapabilities"
 
-    create_wmsstore "dwd-maps" \
+    create_wmsstore "aetherwx" "dwd-maps" \
       "https://maps.dwd.de/geoserver/ows?service=WMS&version=1.3.0&request=GetCapabilities"
 
-    create_wmsstore "knmi-geo" \
+    create_wmsstore "aetherwx" "knmi-geo" \
       "https://geoservices.knmi.nl/wms?service=WMS&version=1.3.0&request=GetCapabilities&DATASET=RADAR"
 
-    # ─── 2. Layers cascade publiés sous maritime:* ──────────────────
-    # Satellites EUMETSAT
-    publish_cascade_layer "eumetsat-view" "msg_rss:ir039_nrt" \
+    # ─── 2. Store cascade NASA GIBS dans workspace `aetherwx-sat` ───
+    # G70 (2026-06-15) : remplace les 7 coveragestores file:///coverage/sat-*
+    # (anciens, jamais peuplés — aucun sat-fetcher dans services/) par un
+    # cascade WMS vers le service GIBS officiel. Stateless, pas de PVC.
+    create_wmsstore "aetherwx-sat" "nasa-gibs" \
+      "https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi?service=WMS&version=1.3.0&request=GetCapabilities"
+
+    # ─── 3. Layers cascade publiés ─────────────────────────────────
+    # Satellites EUMETSAT (workspace aetherwx)
+    publish_cascade_layer "aetherwx" "eumetsat-view" "msg_rss:ir039_nrt" \
       "sat-eu-ir-rss" \
       "Sat IR Europe Rapid Scan 5min (MSG SEVIRI 3.9μm)"
 
-    publish_cascade_layer "eumetsat-view" "mtg_fd:ir105_hrfi" \
+    publish_cascade_layer "aetherwx" "eumetsat-view" "mtg_fd:ir105_hrfi" \
       "sat-global-ir-mtg" \
       "Sat IR global 10min (MTG FCI 10.5μm)"
 
-    publish_cascade_layer "eumetsat-view" "msg_fes:rgb_eview" \
+    publish_cascade_layer "aetherwx" "eumetsat-view" "msg_fes:rgb_eview" \
       "sat-eu-hrv-rgb" \
       "Sat HRV RGB Europe 15min (MSG SEVIRI visible day)"
 
-    # Radars
-    publish_cascade_layer "dwd-maps" "dwd:Radar_rv_product_1x1km_ger" \
+    # Radars (workspace aetherwx)
+    publish_cascade_layer "aetherwx" "dwd-maps" "dwd:Radar_rv_product_1x1km_ger" \
       "radar-dwd-de" \
       "Radar Allemagne 1km 5min (DWD)"
 
-    publish_cascade_layer "knmi-geo" "RAD_NL25_PCP_CM" \
+    publish_cascade_layer "aetherwx" "knmi-geo" "RAD_NL25_PCP_CM" \
       "radar-knmi-nl" \
       "Radar Pays-Bas 5min (KNMI)"
 
-    # ─── 3. Reload GS pour invalider les caches catalog ────────────
+    # NASA GIBS (workspace aetherwx-sat) — G70 2026-06-15
+    publish_cascade_layer "aetherwx-sat" "nasa-gibs" \
+      "MODIS_Terra_CorrectedReflectance_TrueColor" "sat-modis-true-color" \
+      "Sat MODIS True Color (Terra, daily)"
+
+    publish_cascade_layer "aetherwx-sat" "nasa-gibs" \
+      "VIIRS_SNPP_CorrectedReflectance_TrueColor" "sat-viirs-true-color" \
+      "Sat VIIRS True Color (SNPP, daily)"
+
+    publish_cascade_layer "aetherwx-sat" "nasa-gibs" \
+      "MODIS_Terra_Brightness_Temp_Band31_Day" "sat-modis-ir" \
+      "Sat MODIS IR Band31 (Terra, daily)"
+
+    publish_cascade_layer "aetherwx-sat" "nasa-gibs" \
+      "AIRS_L2_Surface_Air_Temperature_Day" "sat-airs-air-temp" \
+      "Sat AIRS Surface Air Temp (Aqua, daily)"
+
+    publish_cascade_layer "aetherwx-sat" "nasa-gibs" \
+      "MODIS_Terra_Cloud_Top_Temp_Day" "sat-modis-cloud-top" \
+      "Sat MODIS Cloud Top Temp (Terra, daily)"
+
+    publish_cascade_layer "aetherwx-sat" "nasa-gibs" \
+      "MODIS_Combined_Value_Added_AOD" "sat-modis-aerosol" \
+      "Sat MODIS Aerosol AOD (combined, daily)"
+
+    publish_cascade_layer "aetherwx-sat" "nasa-gibs" \
+      "VIIRS_SNPP_DayNightBand_ENCC" "sat-viirs-day-night" \
+      "Sat VIIRS Day/Night Band (SNPP, daily)"
+
+    # ─── 4. Reload GS pour invalider les caches catalog ────────────
     log "→ reload GS"
     curl -sk -u "$GS_AUTH" -X POST "$GS_URL/rest/reload" -o /dev/null -w "  POST reload %{http_code}\n"
 
