@@ -263,7 +263,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-d0b8fa9  # G71 sat-rainviewer + cascade skip-TIME 2026-06-15
+    tag: sha-69054c1  # G72 opacity slider universel (icon-opacity + WebGL) 2026-06-16
     replicas: 1
     port: 80
     resources:
