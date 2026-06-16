@@ -263,7 +263,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-0109495  # G72b fix mapLibreLayerIds windArrows/waveArrows/satRainviewer 2026-06-16
+    tag: sha-8872be5  # opacity slider fix temp2m/pressure/humidity/precip/radar + QA hook 2026-06-16
     replicas: 1
     port: 80
     resources:
