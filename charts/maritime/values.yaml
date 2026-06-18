@@ -263,7 +263,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-44b6069  # widget all-layers 2026-06-18
+    tag: sha-43d9a77  # fix restore saved layers /map 2026-06-18
     replicas: 1
     port: 80
     resources:
