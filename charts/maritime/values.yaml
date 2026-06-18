@@ -263,7 +263,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-9c9e29e  # wave-particles + fix persist vector layers 2026-06-18
+    tag: sha-4d5c2f1  # wave-particles fix hs+section Maritime 2026-06-18
     replicas: 1
     port: 80
     resources:
