@@ -135,5 +135,5 @@ spec:
           volumes:
             - name: coverage-data
               persistentVolumeClaim:
-                claimName: maritime-coverage
+                claimName: maritime-coverage-local
 {{- end }}

@@ -236,7 +236,7 @@ spec:
             defaultMode: 0755
         - name: coverage-data
           persistentVolumeClaim:
-            claimName: maritime-coverage
+            claimName: maritime-coverage-local
 ---
 apiVersion: v1
 kind: Service

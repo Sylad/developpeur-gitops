@@ -32,6 +32,37 @@ spec:
   resources:
     requests:
       storage: {{ .Values.coverage.windArrowsSize | default "2Gi" }}
+---
+# 2026-06-18 — SORTIE Longhorn RWX : coverages sur volume node-local
+# (local-path RWO). Le share-manager NFS de Longhorn RWX se désynchronisait
+# (montages obsolètes / EIO sur /coverage → incidents wind-arrows + coverage).
+# Mono-nœud : GS + fetchers sur le même nœud → RWO suffit. Données migrées via
+# Job coverage-localpath-migrate (285M coverage + 112M wind-arrows).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: maritime-coverage-local
+  labels:
+    app.kubernetes.io/component: storage
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: {{ .Values.coverage.coverageLocalSize | default "20Gi" }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: maritime-wind-arrows-local
+  labels:
+    app.kubernetes.io/component: storage
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: {{ .Values.coverage.windArrowsLocalSize | default "2Gi" }}
 {{- end }}
 # Phase 4 (2026-05-19) — le PVC maritime-satellites a été retiré : les
 # GeoTIFFs satellites sont maintenant écrits dans /coverage/sat-<product>/

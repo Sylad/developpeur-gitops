@@ -34,7 +34,7 @@ spec:
       volumes:
         - name: wind-arrows-data
           persistentVolumeClaim:
-            claimName: maritime-wind-arrows
+            claimName: maritime-wind-arrows-local
 ---
 apiVersion: v1
 kind: Service

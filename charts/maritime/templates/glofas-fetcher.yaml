@@ -58,7 +58,7 @@ spec:
       volumes:
         - name: coverage
           persistentVolumeClaim:
-            claimName: maritime-coverage
+            claimName: maritime-coverage-local
         - name: cds-credentials
           secret:
             secretName: glofas-cds-credentials

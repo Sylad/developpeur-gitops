@@ -50,8 +50,8 @@ spec:
       volumes:
         - name: coverage-data
           persistentVolumeClaim:
-            claimName: maritime-coverage
+            claimName: maritime-coverage-local
         - name: wind-arrows-data
           persistentVolumeClaim:
-            claimName: maritime-wind-arrows
+            claimName: maritime-wind-arrows-local
 {{- end }}
