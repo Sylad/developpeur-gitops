@@ -13,7 +13,7 @@ services:
     # undici fetch() qui timeoutait sur Alpine 3.23 musl libc en HTTPS
     # externe (USGS, METAR, hubeau-débits, etc.). https.request() marche
     # mais le code utilise fetch() partout → seul recours : base glibc.
-    tag: sha-ec27b97  # Phase 1 map-configs 2026-06-17
+    tag: sha-e3af45e  # Phase 2+3 dashboard 2026-06-18
     port: 3010
     replicas: 1
     resources:
@@ -263,7 +263,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-ec27b97  # Phase 1 map-configs 2026-06-17
+    tag: sha-e3af45e  # Phase 2+3 dashboard 2026-06-18
     replicas: 1
     port: 80
     resources:
