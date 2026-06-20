@@ -263,7 +263,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-50825c1  # anim index-driven + anti-cleanup-race 2026-06-19
+    tag: sha-7f115c1  # wave particles follow time cursor 2026-06-20
     replicas: 1
     port: 80
     resources:
