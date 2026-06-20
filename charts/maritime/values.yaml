@@ -263,7 +263,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-33c26f2  # re-time restored layers after applyMapConfig 2026-06-20
+    tag: sha-cbeee5c  # vector time-follow scrub + TS2503 fix 2026-06-20
     replicas: 1
     port: 80
     resources:
