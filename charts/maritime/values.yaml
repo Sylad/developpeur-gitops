@@ -263,7 +263,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-8c2529c  # map-view widget renders wave particles 2026-06-20
+    tag: sha-33c26f2  # re-time restored layers after applyMapConfig 2026-06-20
     replicas: 1
     port: 80
     resources:
