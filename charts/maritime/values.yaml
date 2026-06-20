@@ -263,7 +263,7 @@ services:
   frontend:
     enabled: true
     image: ghcr.io/sylad/aetherwx-frontend
-    tag: sha-b1edef7  # obs layers visibles en passe (no-future) 2026-06-20
+    tag: sha-273ad27  # buoys -> overlay statique (section Sources), hors time-bar 2026-06-20
     replicas: 1
     port: 80
     resources:
