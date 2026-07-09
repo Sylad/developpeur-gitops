@@ -354,7 +354,12 @@ geoserverCluster:
   # Heap réduit 8g→4g pour fit 2 replicas (4g+3g=7Gi × 2 = 14Gi, OK).
   # Quand migration Hetzner CAX41 32GB+ ou cluster multi-node, monter à 3+
   # et restorer heap 8g.
-  enabled: true
+  # 2026-07-09 — DÉSACTIVÉ : avec 2 replicas, chaque pod attendait la formation
+  # du cluster Hazelcast, mais les pods crashaient (exit 255) avant → cluster
+  # jamais formé → `cluster not initialized` en boucle → GeoServer web bloqué →
+  # startup-probe timeout → crashloop (deadlock circulaire post-restart k3s).
+  # 1 replica = pas de cluster à attendre, boot standalone propre.
+  enabled: false
 
 # ─── GWC sat config (PostSync Job) ──────────────────────────────────
 # Active le cache GWC sur les layers satellite avec TTL 1h + regex filter
