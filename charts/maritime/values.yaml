@@ -259,8 +259,12 @@ services:
   # `maritime` → `aetherwx`. Toggle ON pour le rollout one-shot.
   # Une fois confirmé en prod, peut rester ON (idempotent no-op si
   # `aetherwx` existe déjà).
+  # 2026-07-09 — DÉSACTIVÉ : ce hook PreSync attend que GeoServer soit ready
+  # (`→ Wait GeoServer ready`). Quand GeoServer est down, le Job ne finit jamais
+  # → bloque le sync ArgoCD entier → le fix (replicas:1) ne peut pas s'appliquer
+  # = deadlock. Le rename maritime→aetherwx est fait depuis Sprint 0 (no-op).
   gsWorkspaceRename:
-    enabled: true
+    enabled: false
 
 
   # ─── Frontend Angular SPA + nginx (AetherWX brand) ────────────────
