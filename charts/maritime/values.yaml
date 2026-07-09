@@ -205,7 +205,11 @@ services:
     # synchronisé. 3 = OOM sur Mini-Blue 24Gi (3 × 7Gi pod = 21Gi + reste).
     # Migrate Hetzner CAX41 32Gi → 3+ replicas possible. Heap réduit à 4g
     # pour fit 2 replicas (2 × (4g+3g overhead) = 14Gi).
-    replicas: 2
+    # 2026-07-09 — 1 REPLICA : 2 replicas ne co-bootent pas sur Mini-Blue après
+    # un restart k3s (se privent de ressources → dépassent le startup-probe →
+    # crashloop, site 502). Peu d'utilisateurs = clustering inutile. Cf
+    # [[k3s_wsl_inotify_exhaustion_2026_07_09]] + [[aetherwx_hosting_migration]].
+    replicas: 1
     dataSize: 5Gi
     # 2026-05-19 — SINGLE SOURCE OF TRUTH pour la mémoire JVM. Le template
     # geoserver.yaml lit `heap` pour les 2 -Xmx (JAVA_OPTS + EXTRA_JAVA_OPTS)
