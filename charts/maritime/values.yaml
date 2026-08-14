@@ -46,7 +46,7 @@ services:
   aisIngester:
     enabled: true
     image: ghcr.io/sylad/aetherwx-ais-ingester
-    tag: sha-6c23593   # AIS SSL bypass aisstream.io (2026-05-21)
+    tag: sha-9a43b57  # Lot 1 revue 8 angles 2026-08-14
     replicas: 1
     resources:
       requests: { cpu: "50m", memory: "128Mi" }
@@ -58,7 +58,7 @@ services:
   aisDecoder:
     enabled: true
     image: ghcr.io/sylad/aetherwx-ais-decoder
-    tag: sha-54d7070   # Sprint 0 rebuild dual-tag (2026-05-21)
+    tag: sha-3a982e1  # rebuild fix type Channel non-null 2026-08-14
     replicas: 1
     resources:
       requests: { cpu: "100m", memory: "256Mi" }
@@ -68,7 +68,7 @@ services:
   alertsEngine:
     enabled: true
     image: ghcr.io/sylad/aetherwx-alerts-engine
-    tag: sha-610cae9
+    tag: sha-9a43b57  # Lot 1 revue 8 angles 2026-08-14
     replicas: 1
     resources:
       requests: { cpu: "50m",  memory: "128Mi" }
@@ -106,7 +106,7 @@ services:
   buoyFetcher:
     enabled: true
     image: ghcr.io/sylad/aetherwx-buoy-fetcher
-    tag: latest
+    tag: sha-9a43b57  # Lot 1 revue 8 angles 2026-08-14
     replicas: 1
     resources:
       requests: { cpu: "50m",  memory: "128Mi" }
@@ -141,7 +141,7 @@ services:
   weatherFetcherArpege:
     enabled: true
     image: ghcr.io/sylad/aetherwx-weather-fetcher-arpege
-    tag: sha-9d594e2   # G47 workspace via env var (2026-05-23)
+    tag: sha-9a43b57  # Lot 1 revue 8 angles 2026-08-14
     replicas: 1
     resources:
       requests: { cpu: "100m", memory: "256Mi" }
@@ -150,7 +150,7 @@ services:
   weatherFetcherArome:
     enabled: true
     image: ghcr.io/sylad/aetherwx-weather-fetcher-arome
-    tag: sha-9d594e2   # G47 workspace via env var (2026-05-23)
+    tag: sha-9a43b57  # Lot 1 revue 8 angles 2026-08-14
     replicas: 1
     resources:
       requests: { cpu: "100m", memory: "256Mi" }
@@ -245,14 +245,14 @@ services:
   # post-sync sur chaque cluster → 2 clusters restent synchros sans
   # drift entre REST manuel sur l'un et oubli sur l'autre.
   styleBootstrap:
-    # 2026-05-23 (G29) — Disabled : SLDs uploadés manuellement via
-    # kubectl exec curl directement dans le pod GS (sst-direct, wind-speed-idw,
-    # *-rainbow stubs). Image ghcr.io/sylad/aetherwx-style-bootstrap:sha-4c4a077
-    # n'existe pas → bloque ArgoCD PostSync en ImagePullBackOff. Re-enable
-    # quand l'image sera buildée (workflow .github/workflows/style-bootstrap.yml).
-    enabled: false
+    # 2026-05-23 (G29) — Disabled : image sha-4c4a077 n'existait pas →
+    # bloquait ArgoCD PostSync en ImagePullBackOff.
+    # 2026-08-14 — RE-ENABLED : image sha-9a43b57 confirmée présente sur
+    # GHCR (Lot 1 revue 8 angles). Provisionne les 3 nouveaux styles
+    # *-contours-only côté workspace aetherwx.
+    enabled: true
     image: ghcr.io/sylad/aetherwx-style-bootstrap
-    tag: sha-60c442f   # + glofas-discharge SLD (2026-05-28)
+    tag: sha-9a43b57  # Lot 1 revue 8 angles — provisions 3 nouveaux styles *-contours-only 2026-08-14
 
   # ─── GS Workspace Rename (Sprint 0 — 2026-05-21) ──────────────────
   # Job PreSync idempotent qui renomme atomiquement le workspace GS
