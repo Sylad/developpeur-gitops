@@ -141,6 +141,29 @@ data:
       rm -rf "$OLD_WS"
     fi
 
+{{- if not .Values.geoserverCluster.enabled }}
+    # G79 (2026-08-15) — Récidive incident cold-boot 2026-07-09. Le fix
+    # 1de7f3b (geoserverCluster.enabled=false, replicas 1) a coupé le mount
+    # ConfigMap sur cluster/, mais les fichiers écrits sur le PVC à l'époque
+    # G60 persistent : cluster/cluster.properties (enabled=true) +
+    # cluster/hazelcast.xml (K8s discovery service geoserver-hz). Le plugin
+    # gs-hz-cluster (baked dans l'image) les lit au boot → discovery K8s
+    # avec le SA `default` sans RBAC pod-list → cluster Hazelcast jamais
+    # init → flood "Failed to publish resource notification, cluster not
+    # initialized (yet)" → catalog load bloqué → startup-probe timeout.
+    # Fix durable : forcer enabled=false dans cluster.properties quand le
+    # clustering Helm est désactivé. NE PAS supprimer le fichier : le module
+    # hz-cluster recrée un cluster.properties par défaut avec enabled=true
+    # s'il est absent. Quand geoserverCluster.enabled=true, le fichier est
+    # un subPath mount read-only du ConfigMap hz-cluster → ce bloc n'est
+    # pas rendu (le sed échouerait de toute façon).
+    CLUSTER_PROPS="${GEOSERVER_DATA_DIR}/cluster/cluster.properties"
+    if [ -f "$CLUSTER_PROPS" ] && grep -q '^enabled=true' "$CLUSTER_PROPS"; then
+      echo "[cluster-bootstrap] G79: forcing enabled=false in cluster/cluster.properties (Helm clustering disabled)"
+      sed -i 's/^enabled=true/enabled=false/' "$CLUSTER_PROPS"
+    fi
+{{- end }}
+
     GWC_LAYERS_DIR="${GEOSERVER_DATA_DIR}/gwc-layers"
     if [ -d "$GWC_LAYERS_DIR" ]; then
       # G42g (2026-05-23) — DELETE les fichiers stale `LayerInfoImpl-*.xml`
