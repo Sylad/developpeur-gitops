@@ -46,7 +46,7 @@ services:
   aisIngester:
     enabled: true
     image: ghcr.io/sylad/aetherwx-ais-ingester
-    tag: sha-9a43b57  # Lot 1 revue 8 angles 2026-08-14
+    tag: sha-a1824e7  # Lot 1 revue 8 angles 2026-08-14
     replicas: 1
     resources:
       requests: { cpu: "50m", memory: "128Mi" }
